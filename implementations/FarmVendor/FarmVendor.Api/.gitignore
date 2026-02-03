@@ -1,0 +1,17 @@
+# .NET build folders
+bin/
+obj/
+.vs/
+
+# Node / React (for future frontend)
+node_modules/
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+
+# OS files
+Thumbs.db
+.DS_Store
