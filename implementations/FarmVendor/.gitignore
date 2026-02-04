@@ -1,9 +1,13 @@
 # .NET build folders
-bin/
-obj/
+**/bin/
+**/obj/
 .vs/
 
-# Node / React (for future frontend)
+# ASP.NET secrets
+appsettings.Development.json
+appsettings.Production.json
+
+# Node / frontend (future)
 node_modules/
 dist/
 build/
