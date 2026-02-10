@@ -12,7 +12,8 @@ function App() {
         <Route path="/" element={<Navigate to="/login"/>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route
+        
+        {/* <Route
           path="/farmer"
           element={role === "Farmer" ? <FarmerDashboard /> : <Navigate to="/login" />}
         />
@@ -20,7 +21,9 @@ function App() {
         <Route
           path="/vendor"
           element={role === "Vendor" ? <VendorDashboard /> : <Navigate to="/login" />}
-        />
+        /> */}
+        <Route path="/farmer" element={<FarmerDashboard />} />
+        <Route path="/vendor" element={<VendorDashboard />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import "../styles/dashboard.css";
 
 export default function Farmer_Dashboard() {
   const navigate = useNavigate();
@@ -13,42 +14,147 @@ export default function Farmer_Dashboard() {
   };
 
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
-        <h2>Farmer Dashboard</h2>
-        <button onClick={logout} style={styles.button}>Logout</button>
-      </header>
+    <div className="dashboard-page">
+      <div className="dashboard-layout">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <div className="sidebar-logo">FV</div>
+            <div>
+              <div className="sidebar-title">FarmVendor</div>
+              <div className="sidebar-subtitle">Farmer Panel</div>
+            </div>
+          </div>
 
-      <p>Welcome, <b>{displayName}</b> 👋</p>
+          <nav className="sidebar-nav">
+            <div className="sidebar-link active">Dashboard</div>
+            <div className="sidebar-link">Products</div>
+            <div className="sidebar-link">Requests</div>
+            <div className="sidebar-link">Dispatch</div>
+            <div className="sidebar-link" onClick={logout}>Logout</div>
+          </nav>
+        </aside>
 
-      <div style={styles.grid}>
-        <div style={styles.card}>
-          <h3>My Products</h3>
-          <p>Add/edit vegetables, fruits, dairy available for dispatch.</p>
-          <button style={styles.linkBtn}>Go to Products</button>
-        </div>
+        {/* Main */}
+        <main className="main">
+          <div className="main-inner">
 
-        <div style={styles.card}>
-          <h3>Vendor Demand Requests</h3>
-          <p>See upcoming vendor requests (e.g., “Need 50kg onions next week”).</p>
-          <button style={styles.linkBtn}>View Requests</button>
-        </div>
+            <div className="topbar">
+              <div>
+                <h1>Welcome, {displayName}</h1>
+                <div className="sub">Overview of your stock and vendor requests</div>
+              </div>
+              <div className="topbar-right">
+                <span className="pill">Role: Farmer</span>
+                <button className="btn btn-secondary" onClick={logout}>
+                  Logout
+                </button>
+              </div>
+            </div>
 
-        <div style={styles.card}>
-          <h3>Dispatch Planning</h3>
-          <p>Plan dispatch date, quantity, and pickup/delivery method.</p>
-          <button style={styles.linkBtn}>Plan Dispatch</button>
-        </div>
+            {/* Stats */}
+            <section className="stats">
+              <div className="stat-card">
+                <div className="stat-top">
+                  <div className="stat-title">Available Products</div>
+                  <div className="stat-value">12</div>
+                </div>
+                <div className="progress"><div style={{ width: "70%" }} /></div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-top">
+                  <div className="stat-title">Expiring Soon</div>
+                  <div className="stat-value">3</div>
+                </div>
+                <div className="progress"><div style={{ width: "35%" }} /></div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-top">
+                  <div className="stat-title">Upcoming Requests</div>
+                  <div className="stat-value">5</div>
+                </div>
+                <div className="progress"><div style={{ width: "55%" }} /></div>
+              </div>
+            </section>
+
+            {/* Sections */}
+            <section className="grid-sections">
+              {/* Current Stock */}
+              <div className="card">
+                <div className="card-header">
+                  <h2>Current Stock</h2>
+                  <button className="btn btn-secondary">View All</button>
+                </div>
+                <div className="card-body">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Expiry</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Strawberries</td>
+                        <td>30 kg</td>
+                        <td>2026-02-10</td>
+                        <td><span className="badge badge-green">Fresh</span></td>
+                      </tr>
+                      <tr>
+                        <td>Milk</td>
+                        <td>12 L</td>
+                        <td>2026-02-06</td>
+                        <td><span className="badge badge-orange">Near Expiry</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Vendor Requests */}
+              <div className="card">
+                <div className="card-header">
+                  <h2>Upcoming Vendor Requests</h2>
+                  <button className="btn btn-secondary">View All</button>
+                </div>
+                <div className="card-body">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Needed By</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Onions</td>
+                        <td>50 kg</td>
+                        <td>2026-02-12</td>
+                      </tr>
+                      <tr>
+                        <td>Tomatoes</td>
+                        <td>30 kg</td>
+                        <td>2026-02-09</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button className="btn btn-primary">Add Product Lot</button>
+                    <button className="btn btn-secondary">Create Dispatch</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </main>
       </div>
     </div>
   );
 }
-
-const styles = {
-  page: { padding: 20, maxWidth: 900, margin: "0 auto" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  grid: { display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", marginTop: 16 },
-  card: { border: "1px solid #ddd", borderRadius: 12, padding: 16 },
-  button: { padding: "8px 12px", borderRadius: 8, border: "1px solid #ccc", cursor: "pointer" },
-  linkBtn: { padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer" },
-};

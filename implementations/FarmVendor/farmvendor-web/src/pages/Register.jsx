@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE = "https://localhost:7057";
-const USE_MOCK = true; // ✅ set false when backend is running
+const USE_MOCK = true; // set false when backend is running
 
 export default function Register() {
   const navigate = useNavigate();

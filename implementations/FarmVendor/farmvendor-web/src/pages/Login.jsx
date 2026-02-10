@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-const API_BASE = "https://localhost:7057"; // change later if needed
-const USE_MOCK = true; // ✅ set false when backend is running
+const API_BASE = "https://localhost:7057"; // This need to be change later before live
+const USE_MOCK = true; // set false when backend is running
 
 export default function Login() {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export default function Login() {
 
     try {
       if (USE_MOCK) {
-        // ✅ Mock login: decide role by email
+        // Mock login: decide role by email
         const role = form.email.toLowerCase().includes("vendor") ? "Vendor" : "Farmer";
         localStorage.setItem("token", "mock-jwt-token");
         localStorage.setItem("role", role);
@@ -104,6 +104,9 @@ export default function Login() {
           Mock mode is <b>{USE_MOCK ? "ON" : "OFF"}</b>. (Turn it OFF when backend runs.)
         </p>
       </div>
+      <button onClick={() => navigate("/farmer")}>
+         Go to Farmer Dashboard
+      </button>`
     </div>
   );
 }
