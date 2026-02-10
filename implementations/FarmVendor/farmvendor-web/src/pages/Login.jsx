@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import "../styles/dashboard.css";
 
 const API_BASE = "https://localhost:7057"; // This need to be change later before live
 const USE_MOCK = true; // set false when backend is running
@@ -59,7 +60,7 @@ export default function Login() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
+      <div className="card">
         <h2 style={styles.title}>Login</h2>
 
         {error && <div style={styles.error}>{error}</div>}
@@ -106,7 +107,7 @@ export default function Login() {
       </div>
       <button onClick={() => navigate("/farmer")}>
          Go to Farmer Dashboard
-      </button>`
+      </button>
     </div>
   );
 }
