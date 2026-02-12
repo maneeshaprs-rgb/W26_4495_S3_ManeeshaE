@@ -87,7 +87,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//pp.UseHttpsRedirection(); //commented this since backend only generate  http://localhost:5136
 
 //enabled JWT auth + authorization
 app.UseAuthentication();

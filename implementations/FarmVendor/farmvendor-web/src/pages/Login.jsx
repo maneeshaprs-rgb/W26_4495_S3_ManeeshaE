@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "../styles/auth.css";
 
-const API_BASE = "https://localhost:7057"; // change later for production
-const USE_MOCK = true; // set false when backend is running
+const API_BASE = import.meta.env.VITE_API_URL;//importing backend base url from .env file
+const USE_MOCK = false; // set false when backend is running
 
 export default function Login() {
   const navigate = useNavigate();
