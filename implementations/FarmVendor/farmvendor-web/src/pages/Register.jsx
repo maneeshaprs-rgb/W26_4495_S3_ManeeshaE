@@ -1,17 +1,20 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import "../styles/auth.css";
 
 const API_BASE = "https://localhost:7057";
 const USE_MOCK = true; // set false when backend is running
 
 export default function Register() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
+    displayName: "",
     email: "",
     password: "",
-    displayName: "",
     role: "Farmer",
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -45,96 +48,116 @@ export default function Register() {
       }
 
       setSuccess("Registered successfully. Please login.");
-      setTimeout(() => navigate("/login"), 800);
+      setTimeout(() => navigate("/login"), 900);
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      setError(err?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Register</h2>
+    <div className="auth-page">
+      <div className="auth-card">
+        {/* Left panel */}
+        <div className="auth-header">
+          <div className="auth-brand">
+            <div className="auth-logo">FV</div>
+            <div>
+              <div className="auth-title">FarmVendor</div>
+              <div className="auth-subtitle">Farmer & Vendor Portal</div>
+            </div>
+          </div>
 
-        {error && <div style={styles.error}>{error}</div>}
-        {success && <div style={styles.success}>{success}</div>}
+          <h2>Create your account</h2>
+          <p>Register as a Farmer or Vendor to start using the platform.</p>
 
-        <form onSubmit={handleRegister} style={styles.form}>
-          <label style={styles.label}>
-            Display Name
-            <input
-              style={styles.input}
-              name="displayName"
-              value={form.displayName}
-              onChange={onChange}
-              required
-              placeholder="Maneesha"
-            />
-          </label>
+          <div className="bullet">
+            <ul>
+              <li>Create demand requests (Vendor)</li>
+              <li>Add product lots and plan dispatch (Farmer)</li>
+              <li>Secure login with role-based access</li>
+            </ul>
+          </div>
+        </div>
 
-          <label style={styles.label}>
-            Email
-            <input
-              style={styles.input}
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={onChange}
-              required
-              placeholder="farmer1@test.com"
-            />
-          </label>
+        {/* Right panel */}
+        <div className="auth-body">
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>Register</h3>
+          <div className="auth-hint">Fill the form below to create an account.</div>
 
-          <label style={styles.label}>
-            Password
-            <input
-              style={styles.input}
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={onChange}
-              required
-              placeholder="Min 6 characters"
-            />
-          </label>
+          {error && <div className="auth-alert error">{error}</div>}
+          {success && <div className="auth-alert success">{success}</div>}
 
-          <label style={styles.label}>
-            Role
-            <select style={styles.input} name="role" value={form.role} onChange={onChange}>
-              <option value="Farmer">Farmer</option>
-              <option value="Vendor">Vendor</option>
-            </select>
-          </label>
+          <form className="auth-form" onSubmit={handleRegister}>
+            <label className="auth-label">
+              Display Name
+              <input
+                className="auth-input"
+                name="displayName"
+                value={form.displayName}
+                onChange={onChange}
+                required
+                placeholder="Maneesha"
+                autoComplete="name"
+              />
+            </label>
 
-          <button style={styles.button} disabled={loading}>
-            {loading ? "Creating..." : "Register"}
-          </button>
-        </form>
+            <label className="auth-label">
+              Email
+              <input
+                className="auth-input"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={onChange}
+                required
+                placeholder="vendor1@test.com"
+                autoComplete="email"
+              />
+            </label>
 
-        <p style={styles.smallText}>
-          Already have an account? <Link to="/login">Login</Link>
-        </p>
+            <label className="auth-label">
+              Password
+              <input
+                className="auth-input"
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={onChange}
+                required
+                placeholder="Min 6 characters"
+                autoComplete="new-password"
+              />
+            </label>
 
-        <p style={styles.hint}>
-          Mock mode is <b>{USE_MOCK ? "ON" : "OFF"}</b>. (Turn it OFF when backend runs.)
-        </p>
+            <label className="auth-label">
+              Role
+              <select
+                className="auth-select"
+                name="role"
+                value={form.role}
+                onChange={onChange}
+              >
+                <option value="Farmer">Farmer</option>
+                <option value="Vendor">Vendor</option>
+              </select>
+            </label>
+
+            <button className="auth-btn primary" disabled={loading}>
+              {loading ? "Creating..." : "Register"}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            Already have an account? <Link to="/login">Login</Link>
+          </div>
+
+          <div className="auth-hint" style={{ marginTop: 6 }}>
+            Mock mode is <b>{USE_MOCK ? "ON" : "OFF"}</b>. (Turn it OFF when backend runs.)
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  page: { minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 },
-  card: { width: 420, border: "1px solid #ddd", borderRadius: 12, padding: 20 },
-  title: { margin: "0 0 12px 0" },
-  form: { display: "grid", gap: 12 },
-  label: { display: "grid", gap: 6, fontSize: 14 },
-  input: { padding: 10, borderRadius: 8, border: "1px solid #ccc" },
-  button: { padding: 10, borderRadius: 8, border: "none", cursor: "pointer" },
-  error: { background: "#ffe6e6", padding: 10, borderRadius: 8, marginBottom: 10 },
-  success: { background: "#e6ffea", padding: 10, borderRadius: 8, marginBottom: 10 },
-  smallText: { marginTop: 12, fontSize: 14 },
-  hint: { marginTop: 8, fontSize: 12, color: "#555" },
-};

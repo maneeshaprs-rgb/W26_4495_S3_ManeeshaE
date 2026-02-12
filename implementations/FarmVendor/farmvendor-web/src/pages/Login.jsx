@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "../styles/dashboard.css";
+import "../styles/auth.css";
 
-const API_BASE = "https://localhost:7057"; // This need to be change later before live
+const API_BASE = "https://localhost:7057"; // change later for production
 const USE_MOCK = true; // set false when backend is running
 
 export default function Login() {
@@ -46,81 +46,113 @@ export default function Login() {
       }
 
       const data = await res.json();
+
+      // Expecting: { token, role, displayName }
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("displayName", data.displayName);
 
       navigate(data.role === "Vendor" ? "/vendor" : "/farmer");
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      setError(err?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.page}>
-      <div className="card">
-        <h2 style={styles.title}>Login</h2>
+    <div className="auth-page">
+      <div className="auth-card">
+        {/* Left panel */}
+        <div className="auth-header">
+          <div className="auth-brand">
+            <div className="auth-logo">FV</div>
+            <div>
+              <div className="auth-title">FarmVendor</div>
+              <div className="auth-subtitle">Farmer & Vendor Portal</div>
+            </div>
+          </div>
 
-        {error && <div style={styles.error}>{error}</div>}
+          <h2>Welcome back</h2>
+          <p>Sign in to manage your stock, requests, and dispatch planning.</p>
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <label style={styles.label}>
-            Email
-            <input
-              style={styles.input}
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={onChange}
-              required
-              placeholder="farmer1@test.com"
-            />
-          </label>
+          <div className="bullet">
+            <ul>
+              <li>Role-based access (Farmer / Vendor)</li>
+              <li>Track inventory and vendor demand</li>
+              <li>Plan dispatch and deliveries</li>
+            </ul>
+          </div>
+        </div>
 
-          <label style={styles.label}>
-            Password
-            <input
-              style={styles.input}
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={onChange}
-              required
-              placeholder="Your password"
-            />
-          </label>
+        {/* Right panel */}
+        <div className="auth-body">
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>Login</h3>
+          <div className="auth-hint">Use your email and password to continue.</div>
 
-          <button style={styles.button} disabled={loading}>
-            {loading ? "Signing in..." : "Login"}
-          </button>
-        </form>
+          {error && <div className="auth-alert error">{error}</div>}
 
-        <p style={styles.smallText}>
-          Don’t have an account? <Link to="/register">Register</Link>
-        </p>
+          <form className="auth-form" onSubmit={handleLogin}>
+            <label className="auth-label">
+              Email
+              <input
+                className="auth-input"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={onChange}
+                required
+                placeholder="farmer1@test.com"
+                autoComplete="email"
+              />
+            </label>
 
-        <p style={styles.hint}>
-          Mock mode is <b>{USE_MOCK ? "ON" : "OFF"}</b>. (Turn it OFF when backend runs.)
-        </p>
+            <label className="auth-label">
+              Password
+              <input
+                className="auth-input"
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={onChange}
+                required
+                placeholder="Your password"
+                autoComplete="current-password"
+              />
+            </label>
+
+            <button className="auth-btn primary" disabled={loading}>
+              {loading ? "Signing in..." : "Login"}
+            </button>
+
+            {/* REMOVE this before live if you want */}
+            <div className="auth-extra">
+              <button
+                type="button"
+                className="auth-btn secondary"
+                onClick={() => navigate("/farmer")}
+              >
+                Go to Farmer Dashboard
+              </button>
+              <button
+                type="button"
+                className="auth-btn secondary"
+                onClick={() => navigate("/vendor")}
+              >
+                Go to Vendor Dashboard
+              </button>
+            </div>
+          </form>
+
+          <div className="auth-footer">
+            Don’t have an account? <Link to="/register">Register</Link>
+          </div>
+
+          <div className="auth-hint" style={{ marginTop: 6 }}>
+            Mock mode is <b>{USE_MOCK ? "ON" : "OFF"}</b>. (Turn it OFF when backend runs.)
+          </div>
+        </div>
       </div>
-      <button onClick={() => navigate("/farmer")}>
-         Go to Farmer Dashboard
-      </button>
     </div>
   );
 }
-
-const styles = {
-  page: { minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 },
-  card: { width: 380, border: "1px solid #ddd", borderRadius: 12, padding: 20 },
-  title: { margin: "0 0 12px 0" },
-  form: { display: "grid", gap: 12 },
-  label: { display: "grid", gap: 6, fontSize: 14 },
-  input: { padding: 10, borderRadius: 8, border: "1px solid #ccc" },
-  button: { padding: 10, borderRadius: 8, border: "none", cursor: "pointer" },
-  error: { background: "#ffe6e6", padding: 10, borderRadius: 8, marginBottom: 10 },
-  smallText: { marginTop: 12, fontSize: 14 },
-  hint: { marginTop: 8, fontSize: 12, color: "#555" },
-};
