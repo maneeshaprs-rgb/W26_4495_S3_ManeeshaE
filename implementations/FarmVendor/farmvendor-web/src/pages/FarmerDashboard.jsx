@@ -10,8 +10,11 @@ export default function Farmer_Dashboard() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("displayName");
+    localStorage.clear();
+  window.location.href = "/login";
     navigate("/login");
   };
+  
 
   return (
     <div className="dashboard-page">
