@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import "../styles/auth.css";
 
 const API_BASE = import.meta.env.VITE_API_URL;//importing backend base url from .env file
+console.log("API_BASE =", API_BASE);//this is for debugging purpose
 const USE_MOCK = false; // set false when backend is running
 
 export default function Login() {
@@ -31,7 +32,7 @@ export default function Login() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`${API_BASE}/api/Auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

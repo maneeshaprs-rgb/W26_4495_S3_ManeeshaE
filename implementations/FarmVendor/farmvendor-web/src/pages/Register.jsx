@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/auth.css";
 
-const API_BASE = "https://localhost:7057";
-const USE_MOCK = true; // set false when backend is running
+const API_BASE = import.meta.env.VITE_API_URL;
+const USE_MOCK = false; //backend is running
 
 export default function Register() {
   const navigate = useNavigate();
@@ -36,15 +36,15 @@ export default function Register() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
+      const res = await fetch(`${API_BASE}/api/Auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) {
+      if (!res.ok) { //checking for strong password
         const text = await res.text();
-        throw new Error(text || "Registration failed");
+        throw new Error(`Registration failed (${res.status}): ${text}`);
       }
 
       setSuccess("Registered successfully. Please login.");
