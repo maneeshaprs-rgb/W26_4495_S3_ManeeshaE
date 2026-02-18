@@ -48,7 +48,7 @@ public static class SeedData
 
     static async Task SeedProductsAsync(AppDbContext db)
     {
-        if (await db.Products.AnyAsync()) return;
+        if (await db.Product.AnyAsync()) return;
 
         var products = new List<Product>
         {
@@ -60,7 +60,7 @@ public static class SeedData
             // add more until 20–30
         };
 
-        db.Products.AddRange(products);
+        db.Product.AddRange(products);
         await db.SaveChangesAsync();
     }
 
@@ -70,7 +70,7 @@ public static class SeedData
         int count)
     {
         var list = new List<ApplicationUser>();
-
+    //creating farmer1@test.com etc.
         for (int i = 1; i <= count; i++)
         {
             var email = $"{role.ToLower()}{i}@test.com";   // farmer1@test.com etc.
@@ -104,9 +104,9 @@ public static class SeedData
 
     static async Task SeedInventoryLotsAsync(AppDbContext db, List<ApplicationUser> farmers)
     {
-        if (await db.InventoryLots.AnyAsync()) return;
+        if (await db.InventoryLot.AnyAsync()) return;
 
-        var products = await db.Products.ToListAsync();
+        var products = await db.Product.ToListAsync();
         var rnd = new Random();
 
         foreach (var farmer in farmers)
@@ -116,7 +116,7 @@ public static class SeedData
             {
                 var p = products[rnd.Next(products.Count)];
 
-                db.InventoryLots.Add(new InventoryLot
+                db.InventoryLot.Add(new InventoryLot
                 {
                     FarmerId = farmer.Id,
                     ProductId = p.ProductId,
@@ -133,9 +133,9 @@ public static class SeedData
 
     static async Task SeedDemandRequestsAsync(AppDbContext db, List<ApplicationUser> vendors)
     {
-        if (await db.DemandRequests.AnyAsync()) return;
+        if (await db.DemandRequest.AnyAsync()) return;
 
-        var products = await db.Products.ToListAsync();
+        var products = await db.Product.ToListAsync();
         var rnd = new Random();
 
         foreach (var vendor in vendors)
@@ -145,7 +145,7 @@ public static class SeedData
             {
                 var p = products[rnd.Next(products.Count)];
 
-                db.DemandRequests.Add(new DemandRequest
+                db.DemandRequest.Add(new DemandRequest
                 {
                     VendorId = vendor.Id,
                     ProductId = p.ProductId,
@@ -163,9 +163,9 @@ public static class SeedData
 
     static async Task SeedDispatchesAsync(AppDbContext db, List<ApplicationUser> farmers, List<ApplicationUser> vendors)
     {
-        if (await db.Dispatches.AnyAsync()) return;
+        if (await db.Dispatch.AnyAsync()) return;
 
-        var products = await db.Products.ToListAsync();
+        var products = await db.Product.ToListAsync();
         var rnd = new Random();
 
         // create ~30 dispatch history records
@@ -175,7 +175,7 @@ public static class SeedData
             var vendor = vendors[rnd.Next(vendors.Count)];
             var p = products[rnd.Next(products.Count)];
 
-            db.Dispatches.Add(new Dispatch
+            db.Dispatch.Add(new Dispatch
             {
                 FarmerId = farmer.Id,
                 VendorId = vendor.Id,
