@@ -4,6 +4,7 @@ using FarmVendor.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FarmVendor.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260218010430_AddMvpSchema")]
+    partial class AddMvpSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,8 +56,7 @@ namespace FarmVendor.Api.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal?>("Latitude")
-                        .HasPrecision(9, 6)
-                        .HasColumnType("decimal(9,6)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -63,8 +65,7 @@ namespace FarmVendor.Api.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<decimal?>("Longitude")
-                        .HasPrecision(9, 6)
-                        .HasColumnType("decimal(9,6)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)

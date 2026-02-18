@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FarmVendor.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260218003611_AddMvpSchema")]
-    partial class AddMvpSchema
+    [Migration("20260218011255_FixLatLngPrecision")]
+    partial class FixLatLngPrecision
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -56,7 +56,8 @@ namespace FarmVendor.Api.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal?>("Latitude")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -65,7 +66,8 @@ namespace FarmVendor.Api.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<decimal?>("Longitude")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -133,8 +135,7 @@ namespace FarmVendor.Api.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("QuantityRequested")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -154,7 +155,7 @@ namespace FarmVendor.Api.Migrations
 
                     b.HasIndex("VendorId");
 
-                    b.ToTable("DemandRequests");
+                    b.ToTable("DemandRequest");
                 });
 
             modelBuilder.Entity("FarmVendor.Api.Models.Dispatch", b =>
@@ -186,8 +187,7 @@ namespace FarmVendor.Api.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("QuantityDispatched")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Unit")
                         .IsRequired()
@@ -207,45 +207,7 @@ namespace FarmVendor.Api.Migrations
 
                     b.HasIndex("VendorId");
 
-                    b.ToTable("Dispatches");
-                });
-
-            modelBuilder.Entity("FarmVendor.Api.Models.InventoryLot", b =>
-                {
-                    b.Property<int>("InventoryLotId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryLotId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FarmerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("QuantityAvailable")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("InventoryLotId");
-
-                    b.HasIndex("FarmerId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("InventoryLots");
+                    b.ToTable("Dispatch");
                 });
 
             modelBuilder.Entity("FarmVendor.Api.Models.Product", b =>
@@ -272,7 +234,7 @@ namespace FarmVendor.Api.Migrations
 
                     b.HasKey("ProductId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Product");
                 });
 
             modelBuilder.Entity("FarmVendor.Api.Models.RelationshipStat", b =>
@@ -305,12 +267,11 @@ namespace FarmVendor.Api.Migrations
 
                     b.HasKey("RelationshipStatId");
 
+                    b.HasIndex("FarmerId");
+
                     b.HasIndex("VendorId");
 
-                    b.HasIndex("FarmerId", "VendorId")
-                        .IsUnique();
-
-                    b.ToTable("RelationshipStats");
+                    b.ToTable("RelationshipStat");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -474,7 +435,7 @@ namespace FarmVendor.Api.Migrations
                     b.HasOne("FarmVendor.Api.Models.ApplicationUser", "Farmer")
                         .WithMany()
                         .HasForeignKey("FarmerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("FarmVendor.Api.Models.Product", "Product")
@@ -486,7 +447,7 @@ namespace FarmVendor.Api.Migrations
                     b.HasOne("FarmVendor.Api.Models.ApplicationUser", "Vendor")
                         .WithMany()
                         .HasForeignKey("VendorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("DemandRequest");
@@ -498,37 +459,18 @@ namespace FarmVendor.Api.Migrations
                     b.Navigation("Vendor");
                 });
 
-            modelBuilder.Entity("FarmVendor.Api.Models.InventoryLot", b =>
-                {
-                    b.HasOne("FarmVendor.Api.Models.ApplicationUser", "Farmer")
-                        .WithMany()
-                        .HasForeignKey("FarmerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FarmVendor.Api.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Farmer");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("FarmVendor.Api.Models.RelationshipStat", b =>
                 {
                     b.HasOne("FarmVendor.Api.Models.ApplicationUser", "Farmer")
                         .WithMany()
                         .HasForeignKey("FarmerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("FarmVendor.Api.Models.ApplicationUser", "Vendor")
                         .WithMany()
                         .HasForeignKey("VendorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Farmer");
