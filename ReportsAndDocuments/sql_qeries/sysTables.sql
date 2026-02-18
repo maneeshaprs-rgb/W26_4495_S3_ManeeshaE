@@ -1,3 +1,4 @@
+--check existing tables in FarmVendorDb
 USE FarmVendorDb;
 GO
 

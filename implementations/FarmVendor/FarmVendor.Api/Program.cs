@@ -96,6 +96,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Seed Farmer/Vendor roles
-await SeedData.SeedRolesAsync(app.Services);
-
+//await SeedData.SeedRolesAsync(app.Services);
+//Call SeedData from Program.cs
+await SeedData.InitializeAsync(app.Services);
 app.Run();

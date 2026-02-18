@@ -8,6 +8,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    // DbSets (this is what makes EF create tables)
+    //DbSets for MVP ATABLES
+    public DbSet<Product> Product => Set<Product>();
+    public DbSet<DemandRequest> DemandRequest => Set<DemandRequest>();
+    public DbSet<Dispatch> Dispatch => Set<Dispatch>();
+    public DbSet<RelationshipStat> RelationshipStat => Set<RelationshipStat>();
+    public DbSet<InventoryLot> InventoryLot => Set<InventoryLot>();   // this resolve issue on  inventoryLot table unavailability
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -24,7 +32,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(d => d.VendorId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // (Optional but recommended) RelationshipStats fix too
         builder.Entity<RelationshipStat>()
             .HasOne(r => r.Farmer)
             .WithMany()
