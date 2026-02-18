@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 
-const API_BASE = "http://localhost:5136";
+const API_BASE = import.meta.env.VITE_API_BASE;//"http://localhost:5136";
 
 export default function Farmer_Dashboard() {
   const navigate = useNavigate();
