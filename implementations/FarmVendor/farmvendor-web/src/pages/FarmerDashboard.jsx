@@ -1,20 +1,87 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
+
+const API_BASE = "http://localhost:5136";
 
 export default function Farmer_Dashboard() {
   const navigate = useNavigate();
   const displayName = localStorage.getItem("displayName") || "Farmer";
 
+  const token = localStorage.getItem("token");
+
+  const [stats, setStats] = useState({
+    availableProducts: 0,
+    expiringSoon: 0,
+    upcomingRequests: 0,
+  });
+
+  const [stock, setStock] = useState([]);
+  const [requests, setRequests] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const authHeaders = useMemo(() => {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  }, [token]);
+
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    localStorage.removeItem("displayName");
     localStorage.clear();
-  window.location.href = "/login";
     navigate("/login");
   };
-  
+
+  const getStatusBadge = (expiry) => {
+    if (!expiry) return { text: "No Expiry", cls: "badge badge-gray" };
+
+    const exp = new Date(expiry);
+    const now = new Date();
+    const diffDays = (exp - now) / (1000 * 60 * 60 * 24);
+
+    if (diffDays <= 3) return { text: "Near Expiry", cls: "badge badge-orange" };
+    return { text: "Fresh", cls: "badge badge-green" };
+  };
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const load = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [statsRes, stockRes, reqRes] = await Promise.all([
+          fetch(`${API_BASE}/api/farmer/dashboard/stats`, { headers: authHeaders }),
+          fetch(`${API_BASE}/api/farmer/dashboard/stock`, { headers: authHeaders }),
+          fetch(`${API_BASE}/api/farmer/dashboard/requests`, { headers: authHeaders }),
+        ]);
+
+        if (!statsRes.ok) throw new Error("Failed to load stats");
+        if (!stockRes.ok) throw new Error("Failed to load stock");
+        if (!reqRes.ok) throw new Error("Failed to load requests");
+
+        const statsJson = await statsRes.json();
+        const stockJson = await stockRes.json();
+        const reqJson = await reqRes.json();
+
+        setStats(statsJson);
+        setStock(stockJson);
+        setRequests(reqJson);
+      } catch (e) {
+        setError(e?.message || "Something went wrong loading dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [token, navigate, authHeaders]);
 
   return (
     <div className="dashboard-page">
@@ -41,7 +108,6 @@ export default function Farmer_Dashboard() {
         {/* Main */}
         <main className="main">
           <div className="main-inner">
-
             <div className="topbar">
               <div>
                 <h1>Welcome, {displayName}</h1>
@@ -55,12 +121,15 @@ export default function Farmer_Dashboard() {
               </div>
             </div>
 
+            {error && <div className="auth-alert error">{error}</div>}
+            {loading && <div className="auth-hint">Loading dashboard data...</div>}
+
             {/* Stats */}
             <section className="stats">
               <div className="stat-card">
                 <div className="stat-top">
                   <div className="stat-title">Available Products</div>
-                  <div className="stat-value">12</div>
+                  <div className="stat-value">{stats.availableProducts}</div>
                 </div>
                 <div className="progress"><div style={{ width: "70%" }} /></div>
               </div>
@@ -68,7 +137,7 @@ export default function Farmer_Dashboard() {
               <div className="stat-card">
                 <div className="stat-top">
                   <div className="stat-title">Expiring Soon</div>
-                  <div className="stat-value">3</div>
+                  <div className="stat-value">{stats.expiringSoon}</div>
                 </div>
                 <div className="progress"><div style={{ width: "35%" }} /></div>
               </div>
@@ -76,7 +145,7 @@ export default function Farmer_Dashboard() {
               <div className="stat-card">
                 <div className="stat-top">
                   <div className="stat-title">Upcoming Requests</div>
-                  <div className="stat-value">5</div>
+                  <div className="stat-value">{stats.upcomingRequests}</div>
                 </div>
                 <div className="progress"><div style={{ width: "55%" }} /></div>
               </div>
@@ -90,6 +159,7 @@ export default function Farmer_Dashboard() {
                   <h2>Current Stock</h2>
                   <button className="btn btn-secondary">View All</button>
                 </div>
+
                 <div className="card-body">
                   <table className="table">
                     <thead>
@@ -101,18 +171,21 @@ export default function Farmer_Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>Strawberries</td>
-                        <td>30 kg</td>
-                        <td>2026-02-10</td>
-                        <td><span className="badge badge-green">Fresh</span></td>
-                      </tr>
-                      <tr>
-                        <td>Milk</td>
-                        <td>12 L</td>
-                        <td>2026-02-06</td>
-                        <td><span className="badge badge-orange">Near Expiry</span></td>
-                      </tr>
+                      {stock.length === 0 ? (
+                        <tr><td colSpan="4">No inventory lots found.</td></tr>
+                      ) : (
+                        stock.map((row, idx) => {
+                          const badge = getStatusBadge(row.expiry);
+                          return (
+                            <tr key={idx}>
+                              <td>{row.product}</td>
+                              <td>{row.qty} {row.unit}</td>
+                              <td>{row.expiry ? new Date(row.expiry).toISOString().slice(0, 10) : "-"}</td>
+                              <td><span className={badge.cls}>{badge.text}</span></td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -124,6 +197,7 @@ export default function Farmer_Dashboard() {
                   <h2>Upcoming Vendor Requests</h2>
                   <button className="btn btn-secondary">View All</button>
                 </div>
+
                 <div className="card-body">
                   <table className="table">
                     <thead>
@@ -134,16 +208,17 @@ export default function Farmer_Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>Onions</td>
-                        <td>50 kg</td>
-                        <td>2026-02-12</td>
-                      </tr>
-                      <tr>
-                        <td>Tomatoes</td>
-                        <td>30 kg</td>
-                        <td>2026-02-09</td>
-                      </tr>
+                      {requests.length === 0 ? (
+                        <tr><td colSpan="3">No open demand requests found.</td></tr>
+                      ) : (
+                        requests.map((row, idx) => (
+                          <tr key={idx}>
+                            <td>{row.product}</td>
+                            <td>{row.qty} {row.unit}</td>
+                            <td>{new Date(row.neededBy).toISOString().slice(0, 10)}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
 
