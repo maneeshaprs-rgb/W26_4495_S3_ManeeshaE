@@ -8,3 +8,15 @@ FarmVendor is a role-based web application designed to help farmers and vendors 
 The system supports demand forecasting by analyzing vendor requests together with past dispatch data, helping farmers plan their harvest and delivery decisions. It also provides vendor recommendations based on distance, requested quantity, and historical relationships, while allowing farmers to make the final decision.
 
 The backend is built using ASP.NET Core Web API with secure authentication and role-based access control. SQL Server is used for data storage, and React is used for the frontend. During early stages, the application uses simulated data to support development and applied research.
+
+Installation instructions
+Backend
+  cd FarmVendor.Api
+  dotnet restore
+  dotnet ef database update
+  dotnet run
+
+Frontend
+  cd farmvendor-web
+  npm install
+  npm run dev
