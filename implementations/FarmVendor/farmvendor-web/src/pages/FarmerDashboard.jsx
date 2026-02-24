@@ -22,6 +22,17 @@ export default function Farmer_Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  //added for product lot entering by farmer
+  const [showAddLot, setShowAddLot] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [lotForm, setLotForm] = useState({
+    productId: "",
+    quantityAvailable: "",
+    unit: "",
+    expiryDate: "",
+  });
+const [savingLot, setSavingLot] = useState(false);
+
   const authHeaders = useMemo(() => {
     return {
       "Content-Type": "application/json",
@@ -69,6 +80,7 @@ export default function Farmer_Dashboard() {
         const statsJson = await statsRes.json();
         const stockJson = await stockRes.json();
         const reqJson = await reqRes.json();
+        await loadProducts();
 
         setStats(statsJson);
         setStock(stockJson);
@@ -77,6 +89,63 @@ export default function Farmer_Dashboard() {
         setError(e?.message || "Something went wrong loading dashboard");
       } finally {
         setLoading(false);
+      }
+    };
+
+    //Load products once
+    const loadProducts = async () => {
+      const res = await fetch(`${API_BASE}/api/products/active`, { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed to load products");
+      const data = await res.json();
+      setProducts(data);
+    };
+
+    //submit function
+    const submitLot = async (e) => {
+      e.preventDefault();
+      setError("");
+
+      if (!lotForm.productId) return setError("Please select a product.");
+      if (!lotForm.quantityAvailable || Number(lotForm.quantityAvailable) <= 0)
+        return setError("Quantity must be greater than 0.");
+
+      setSavingLot(true);
+      try {
+        const payload = {
+          productId: Number(lotForm.productId),
+          quantityAvailable: Number(lotForm.quantityAvailable),
+          unit: lotForm.unit?.trim() ? lotForm.unit.trim() : null,
+          expiryDate: lotForm.expiryDate ? new Date(lotForm.expiryDate).toISOString() : null,
+        };
+
+        const res = await fetch(`${API_BASE}/api/inventorylots`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(payload),
+        });
+
+        const text = await res.text();
+        if (!res.ok) throw new Error(text || "Failed to create inventory lot.");
+
+        // refresh dashboard lists
+        setShowAddLot(false);
+        setLotForm({ productId: "", quantityAvailable: "", unit: "", expiryDate: "" });
+
+        // reload dashboard data (call your existing load again)
+        // simplest: call the same endpoints again:
+        const [statsRes, stockRes, reqRes] = await Promise.all([
+          fetch(`${API_BASE}/api/farmer/dashboard/stats`, { headers: authHeaders }),
+          fetch(`${API_BASE}/api/farmer/dashboard/stock`, { headers: authHeaders }),
+          fetch(`${API_BASE}/api/farmer/dashboard/requests`, { headers: authHeaders }),
+        ]);
+
+        setStats(await statsRes.json());
+        setStock(await stockRes.json());
+        setRequests(await reqRes.json());
+      } catch (err) {
+        setError(err?.message || "Failed to save inventory lot");
+      } finally {
+        setSavingLot(false);
       }
     };
 
@@ -223,7 +292,9 @@ export default function Farmer_Dashboard() {
                   </table>
 
                   <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button className="btn btn-primary">Add Product Lot</button>
+                    <button className="btn btn-primary" onClick={() => setShowAddLot(true)}>
+                      Add Product Lot
+                    </button>
                     <button className="btn btn-secondary">Create Dispatch</button>
                   </div>
                 </div>
@@ -233,6 +304,84 @@ export default function Farmer_Dashboard() {
           </div>
         </main>
       </div>
+
+
+      {showAddLot && (
+      <div className="modal-backdrop" onClick={() => setShowAddLot(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>Add Product Lot</h3>
+            <button className="icon-btn" onClick={() => setShowAddLot(false)}>✕</button>
+          </div>
+
+          <form onSubmit={submitLot} className="modal-body">
+            <label className="field">
+              <span>Product</span>
+              <select
+                value={lotForm.productId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const p = products.find(x => String(x.productId) === String(id));
+                  setLotForm(prev => ({
+                    ...prev,
+                    productId: id,
+                    unit: prev.unit || (p?.defaultUnit ?? ""),
+                  }));
+                }}
+              >
+                <option value="">-- Select --</option>
+                {products.map(p => (
+                  <option key={p.productId} value={p.productId}>
+                    {p.name} ({p.defaultUnit})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="row">
+              <label className="field">
+                <span>Quantity</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={lotForm.quantityAvailable}
+                  onChange={(e) => setLotForm(prev => ({ ...prev, quantityAvailable: e.target.value }))}
+                  placeholder="e.g., 50"
+                />
+              </label>
+
+              <label className="field">
+                <span>Unit</span>
+                <input
+                  value={lotForm.unit}
+                  onChange={(e) => setLotForm(prev => ({ ...prev, unit: e.target.value }))}
+                  placeholder="kg / L / dozen"
+                />
+              </label>
+            </div>
+
+            <label className="field">
+              <span>Expiry Date (optional)</span>
+              <input
+                type="date"
+                value={lotForm.expiryDate}
+                onChange={(e) => setLotForm(prev => ({ ...prev, expiryDate: e.target.value }))}
+              />
+            </label>
+
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowAddLot(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={savingLot}>
+                {savingLot ? "Saving..." : "Save Lot"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+
     </div>
   );
 }
