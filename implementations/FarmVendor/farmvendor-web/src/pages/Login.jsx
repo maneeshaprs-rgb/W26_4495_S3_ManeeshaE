@@ -149,9 +149,7 @@ export default function Login() {
             Don’t have an account? <Link to="/register">Register</Link>
           </div>
 
-          <div className="auth-hint" style={{ marginTop: 6 }}>
-            Mock mode is <b>{USE_MOCK ? "ON" : "OFF"}</b>. (Turn it OFF when backend runs.)
-          </div>
+          
         </div>
       </div>
     </div>
