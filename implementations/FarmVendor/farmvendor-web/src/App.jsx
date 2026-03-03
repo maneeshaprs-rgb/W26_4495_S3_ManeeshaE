@@ -7,6 +7,10 @@ import VendorDashboard from "./pages/VendorDashboard";
 import RequireAuth from "./routes/RequireAuth";
 import RequireRole from "./routes/RequireRole";
 
+import FarmerProducts from "./pages/FarmerProducts";
+import FarmerRequests from "./pages/FarmerRequests";
+import FarmerDispatch from "./pages/FarmerDispatch";
+
 function App() {
   return (
     <BrowserRouter>
@@ -20,6 +24,9 @@ function App() {
           {/* Farmer-only */}
           <Route element={<RequireRole role="Farmer" />}>
             <Route path="/farmer" element={<FarmerDashboard />} />
+            <Route path="/farmer/products" element={<FarmerProducts />} />
+            <Route path="/farmer/requests" element={<FarmerRequests />} />
+            <Route path="/farmer/dispatch" element={<FarmerDispatch />} />
           </Route>
 
           {/* Vendor-only */}

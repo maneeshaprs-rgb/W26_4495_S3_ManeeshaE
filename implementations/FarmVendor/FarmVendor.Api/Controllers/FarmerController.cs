@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using FarmVendor.Api.Models.DTOs;
 
 namespace FarmVendor.Api.Controllers;
 
@@ -100,5 +101,67 @@ public class FarmerController : ControllerBase
             .ToListAsync();
 
         return Ok(rows);
+    }
+
+    // 4) My Inventory Lots (farmer)
+[HttpGet("inventorylots")]
+public async Task<IActionResult> GetMyInventoryLots()
+{
+    var farmerId = GetUserId();
+    if (string.IsNullOrEmpty(farmerId)) return Unauthorized();
+
+    var rows = await _db.InventoryLot
+        .Where(l => l.FarmerId == farmerId)
+        .Include(l => l.Product)
+        .OrderByDescending(l => l.CreatedAt)
+        .Select(l => new InventoryLotRowDto
+        {
+            InventoryLotId = l.InventoryLotId,
+            ProductId = l.ProductId,
+            ProductName = l.Product.Name,
+            QuantityAvailable = l.QuantityAvailable,
+            Unit = l.Unit,
+            ExpiryDate = l.ExpiryDate,
+            CreatedAt = l.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(rows);
+}
+
+    // 5) Update a lot (farmer owns it)
+    [HttpPut("inventorylots/{id:int}")]
+    public async Task<IActionResult> UpdateMyInventoryLot(int id, [FromBody] UpdateInventoryLotDto dto)
+    {
+        var farmerId = GetUserId();
+        if (string.IsNullOrEmpty(farmerId)) return Unauthorized();
+
+        if (dto.QuantityAvailable < 0) return BadRequest("QuantityAvailable cannot be negative.");
+
+        var lot = await _db.InventoryLot.FirstOrDefaultAsync(l => l.InventoryLotId == id && l.FarmerId == farmerId);
+        if (lot == null) return NotFound("Inventory lot not found.");
+
+        lot.QuantityAvailable = dto.QuantityAvailable;
+        if (!string.IsNullOrWhiteSpace(dto.Unit)) lot.Unit = dto.Unit.Trim();
+        lot.ExpiryDate = dto.ExpiryDate;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Updated", lot.InventoryLotId });
+    }
+
+    // 6) Delete a lot (farmer owns it)
+    [HttpDelete("inventorylots/{id:int}")]
+    public async Task<IActionResult> DeleteMyInventoryLot(int id)
+    {
+        var farmerId = GetUserId();
+        if (string.IsNullOrEmpty(farmerId)) return Unauthorized();
+
+        var lot = await _db.InventoryLot.FirstOrDefaultAsync(l => l.InventoryLotId == id && l.FarmerId == farmerId);
+        if (lot == null) return NotFound("Inventory lot not found.");
+
+        _db.InventoryLot.Remove(lot);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Deleted", id });
     }
 }
