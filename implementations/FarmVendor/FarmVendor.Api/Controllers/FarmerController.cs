@@ -91,6 +91,7 @@ public class FarmerController : ControllerBase
             .Take(10)
             .Select(r => new
             {
+                demandRequestId = r.DemandRequestId,
                 product = r.Product.Name,
                 qty = r.QuantityRequested,
                 unit = r.Unit,
