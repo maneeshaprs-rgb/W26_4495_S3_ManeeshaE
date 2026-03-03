@@ -497,28 +497,23 @@ export default function FarmerDashboard() {
                   value={dispatchForm.demandRequestId}
                   onChange={(e) => {
   const id = e.target.value;
-
-  const req = requests.find(
-    (r) => String(r.demandRequestId ?? r.DemandRequestId) === String(id)
-  );
+  const req = requests.find((x) => String(x.demandRequestId) === String(id));
 
   setDispatchForm((prev) => ({
     ...prev,
     demandRequestId: id,
-    quantityDispatched: req ? String(req.qty ?? req.Qty ?? "") : prev.quantityDispatched,
+    quantityDispatched: req ? String(req.qty) : prev.quantityDispatched,
   }));
 }}
                 >
                   <option value="">-- Select --</option>
-                  {requests.map((r, idx) => {
-                    const id = r.demandRequestId ?? r.DemandRequestId;
-                    
-                    return (
-                      <option key={id ?? idx} value={id ?? ""}>
-                        #{id} — {r.product ?? r.Product} ({r.qty ?? r.Qty} {r.unit ?? r.Unit})
-                      </option>
-                    );
-                  })}
+                  
+{requests.map((r) => (
+  <option key={r.demandRequestId} value={r.demandRequestId}>
+    #{r.demandRequestId} — {r.product} ({r.qty} {r.unit}) Needed:{" "}
+    {new Date(r.neededBy).toISOString().slice(0, 10)}
+  </option>
+))}
                 </select>
               </label>
 
