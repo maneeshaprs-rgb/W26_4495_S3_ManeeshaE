@@ -164,4 +164,66 @@ public async Task<IActionResult> GetMyInventoryLots()
 
         return Ok(new { message = "Deleted", id });
     }
+
+    
+
+    // 7) Open requests (for farmers to dispatch)
+    [HttpGet("requests/open")]
+    public async Task<IActionResult> GetOpenRequests()
+    {
+        var now = DateTime.UtcNow;
+
+        var rows = await _db.DemandRequest
+            .Where(r => r.Status == "Open" && r.NeededBy >= now)
+            .Include(r => r.Product)
+            .Include(r => r.Vendor) // if your DemandRequest has Vendor navigation
+            .OrderBy(r => r.NeededBy)
+            .Select(r => new FarmerDemandRequestRowDto
+            {
+                DemandRequestId = r.DemandRequestId,
+                ProductId = r.ProductId,
+                Product = r.Product.Name,
+                Qty = r.QuantityRequested,
+                Unit = r.Unit,
+                NeededBy = r.NeededBy,
+                Status = r.Status,
+                VendorId = r.VendorId,
+
+                VendorName = r.Vendor != null ? r.Vendor.DisplayName : null,
+                VendorEmail = r.Vendor != null ? r.Vendor.Email : null
+            })
+            .ToListAsync();
+
+        return Ok(rows);
+    }
+
+    // 8) Requests history (Accepted / Fulfilled / Declined etc.)
+    [HttpGet("requests/history")]
+    public async Task<IActionResult> GetRequestHistory()
+    {
+        var rows = await _db.DemandRequest
+            .Where(r => r.Status != "Open")
+            .Include(r => r.Product)
+            .Include(r => r.Vendor)
+            .OrderByDescending(r => r.NeededBy)
+            .Take(50)
+            .Select(r => new FarmerDemandRequestRowDto
+            {
+                DemandRequestId = r.DemandRequestId,
+                ProductId = r.ProductId,
+                Product = r.Product.Name,
+                Qty = r.QuantityRequested,
+                Unit = r.Unit,
+                NeededBy = r.NeededBy,
+                Status = r.Status,
+                VendorId = r.VendorId,
+
+                VendorName = r.Vendor != null ? r.Vendor.DisplayName : null,
+                VendorEmail = r.Vendor != null ? r.Vendor.Email : null
+            })
+            .ToListAsync();
+
+        return Ok(rows);
+    }
+    
 }
