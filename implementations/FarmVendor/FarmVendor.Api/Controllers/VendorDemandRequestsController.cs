@@ -6,9 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-[Route("api/vendor/demandrequests")]
+namespace FarmVendor.Api.Controllers;
+
 [ApiController]
-[Authorize(Roles = "Vendor")]
+[Route("api/vendor/demandrequests")]
+[Authorize] // JWT required
 public class VendorDemandRequestsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -18,86 +20,85 @@ public class VendorDemandRequestsController : ControllerBase
         _db = db;
     }
 
-    // Helper: get VendorId (string based on your DTO)
-    private string GetVendorId()
+    private string GetUserId()
+        => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
+    // GET: api/vendor/demandrequests?status=Open
+    [HttpGet]
+    public async Task<IActionResult> GetMyDemandRequests([FromQuery] string? status = null)
     {
-        return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-    }
+        var vendorId = GetUserId();
+        if (string.IsNullOrEmpty(vendorId)) return Unauthorized();
 
-    // ---------------------------------------------------------
-    // 1️ CREATE DEMAND REQUEST (Vendor)
-    // ---------------------------------------------------------
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] FarmerDemandRequestRowDto dto)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var q = _db.DemandRequest
+            .AsNoTracking()
+            .Where(r => r.VendorId == vendorId)
+            .Include(r => r.Product)
+            .AsQueryable();
 
-        var vendorId = GetVendorId();
+        if (!string.IsNullOrWhiteSpace(status))
+            q = q.Where(r => r.Status == status);
 
-        var demand = new DemandRequest
-        {
-            ProductId = dto.ProductId,
-            VendorId = vendorId,
-            Quantity = dto.Qty,
-            NeededBy = dto.NeededBy,
-            Status = "Open"
-        };
-
-        _db.DemandRequests.Add(demand);
-        await _db.SaveChangesAsync();
-
-        // Return in SAME DTO FORMAT
-        var result = await _db.DemandRequests
-            .Where(d => d.Id == demand.Id)
-            .Include(d => d.Product)
-            .Include(d => d.Vendor)
-            .Select(d => new FarmerDemandRequestRowDto
+        var rows = await q
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(100)
+            .Select(r => new FarmerDemandRequestRowDto
             {
-                DemandRequestId = d.Id,
-                ProductId = d.ProductId,
-                Product = d.Product.Name,
-                Qty = d.Quantity,
-                Unit = d.Product.Unit,
-                NeededBy = d.NeededBy,
-                Status = d.Status,
-                VendorId = d.VendorId,
-                VendorName = d.Vendor.DisplayName,
-                VendorEmail = d.Vendor.Email
-            })
-            .FirstAsync();
-
-        return Ok(result);
-    }
-
-    // ---------------------------------------------------------
-    // 2️ GET MY DEMAND REQUESTS (Vendor)
-    // ---------------------------------------------------------
-    [HttpGet("mine")]
-    public async Task<ActionResult<List<FarmerDemandRequestRowDto>>> GetMine()
-    {
-        var vendorId = GetVendorId();
-
-        var list = await _db.DemandRequests
-            .Where(d => d.VendorId == vendorId)
-            .Include(d => d.Product)
-            .Include(d => d.Vendor)
-            .OrderByDescending(d => d.NeededBy)
-            .Select(d => new FarmerDemandRequestRowDto
-            {
-                DemandRequestId = d.Id,
-                ProductId = d.ProductId,
-                Product = d.Product.Name,
-                Qty = d.Quantity,
-                Unit = d.Product.Unit,
-                NeededBy = d.NeededBy,
-                Status = d.Status,
-                VendorId = d.VendorId,
-                VendorName = d.Vendor.DisplayName,
-                VendorEmail = d.Vendor.Email
+                DemandRequestId = r.DemandRequestId,
+                ProductId = r.ProductId,
+                Product = r.Product.Name,
+                Qty = r.QuantityRequested,
+                Unit = r.Unit,
+                NeededBy = r.NeededBy,
+                Status = r.Status
             })
             .ToListAsync();
 
-        return Ok(list);
+        return Ok(rows);
+    }
+
+    // POST: api/vendor/demandrequests
+    [HttpPost]
+    public async Task<IActionResult> CreateDemandRequest([FromBody] CreateDemandRequestDto dto)
+    {
+        var vendorId = GetUserId();
+        if (string.IsNullOrEmpty(vendorId)) return Unauthorized();
+
+        if (dto.ProductId <= 0) return BadRequest("ProductId is required.");
+        if (dto.QuantityRequested <= 0) return BadRequest("QuantityRequested must be > 0.");
+        if (dto.NeededBy == default) return BadRequest("NeededBy is required.");
+
+        var product = await _db.Product
+            .FirstOrDefaultAsync(p => p.ProductId == dto.ProductId && p.IsActive);
+
+        if (product == null) return NotFound("Product not found or inactive.");
+
+        var unit = !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit!.Trim() : (product.DefaultUnit ?? "kg");
+
+        var req = new DemandRequest
+        {
+            VendorId = vendorId,
+            ProductId = dto.ProductId,
+            QuantityRequested = dto.QuantityRequested,
+            Unit = unit,
+            NeededBy = dto.NeededBy,
+            Status = "Open",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.DemandRequest.Add(req);
+        await _db.SaveChangesAsync();
+
+        // Return a row (good for UI immediately)
+        return Ok(new FarmerDemandRequestRowDto
+        {
+            DemandRequestId = req.DemandRequestId,
+            ProductId = req.ProductId,
+            Product = product.Name,
+            Qty = req.QuantityRequested,
+            Unit = req.Unit,
+            NeededBy = req.NeededBy,
+            Status = req.Status
+        });
     }
 }

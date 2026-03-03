@@ -1,5 +1,5 @@
 namespace FarmVendor.Api.Models.DTOs;
-
+//this same DTO can use for vendor side also
 public class FarmerDemandRequestRowDto
 {
     public int DemandRequestId { get; set; }

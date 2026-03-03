@@ -13,6 +13,69 @@ export default function Vendor_Dashboard() {
     navigate("/login");
   };
 
+  //sates for add
+  const [showCreateDemand, setShowCreateDemand] = useState(false);
+  const [demandForm, setDemandForm] = useState({
+    productId: "",
+    quantityRequested: "",
+    unit: "",
+    neededBy: "",
+  });
+  const [savingDemand, setSavingDemand] = useState(false);
+
+  //Add open + submit
+  const openCreateDemand = async () => {
+    setError("");
+    // load products for dropdown (if not loaded yet)
+    try {
+      if (products.length === 0) await loadProducts();
+    } catch (e) {
+      setError(e?.message || "Failed to load products");
+      return;
+    }
+
+    setDemandForm({ productId: "", quantityRequested: "", unit: "", neededBy: "" });
+    setShowCreateDemand(true);
+  };
+
+  const submitDemandRequest = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!demandForm.productId) return setError("Please select a product.");
+    if (!demandForm.quantityRequested || Number(demandForm.quantityRequested) <= 0)
+      return setError("Quantity must be greater than 0.");
+    if (!demandForm.neededBy) return setError("Please select Needed By date.");
+
+    setSavingDemand(true);
+    try {
+      const payload = {
+        productId: Number(demandForm.productId),
+        quantityRequested: Number(demandForm.quantityRequested),
+        unit: demandForm.unit?.trim() ? demandForm.unit.trim() : null,
+        neededBy: new Date(demandForm.neededBy).toISOString(),
+      };
+
+      const res = await fetch(`${API_BASE}/api/vendor/demandrequests`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to create demand request.");
+
+      // Refresh dashboard lists (or push returned item into requests state)
+      setShowCreateDemand(false);
+      await loadDashboard(); // your vendor dashboard loader
+    } catch (err) {
+      setError(err?.message || "Failed to create demand request.");
+    } finally {
+      setSavingDemand(false);
+    }
+  };
+  
+  //end of Add open + submit
   return (
     <div className="dashboard-page">
       <div className="dashboard-layout">
