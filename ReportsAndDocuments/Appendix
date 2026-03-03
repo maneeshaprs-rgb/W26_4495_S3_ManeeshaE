@@ -1,1 +1,7 @@
-fix allignment issue in styling auth.css
+
+1.	“Fix IQueryable implicit conversion error in EF Core Include query”
+2.	“Why am I getting 400 error when posting dispatch”
+3.	“How to implement nested routes with Outlet in React Router v6”
+4.	“How to design DTO for dispatch status update”
+5.	“How to return demandRequestId in projection query”
+6.  fix allignment issue in styling auth.css
