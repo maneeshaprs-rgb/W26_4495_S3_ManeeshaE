@@ -11,6 +11,11 @@ import FarmerProducts from "./pages/FarmerProducts";
 import FarmerRequests from "./pages/FarmerRequests";
 import FarmerDispatch from "./pages/FarmerDispatch";
 
+//vendor functionalities
+import VendorStock from "./pages/VendorStock";
+import VendorRequests from "./pages/VendorRequests";
+import VendorIncoming from "./pages/VendorIncoming";
+
 function App() {
   return (
     <BrowserRouter>
@@ -32,6 +37,9 @@ function App() {
           {/* Vendor-only */}
           <Route element={<RequireRole role="Vendor" />}>
             <Route path="/vendor" element={<VendorDashboard />} />
+            <Route path="/vendor/stock" element={<VendorStock />} />
+            <Route path="/vendor/requests" element={<VendorRequests />} />
+            <Route path="/vendor/incoming" element={<VendorIncoming />} />
           </Route>
         </Route>
 
