@@ -1,4 +1,5 @@
 using FarmVendor.Api.Data;
+using FarmVendor.Api.Models;
 using FarmVendor.Api.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,57 @@ public class VendorDispatchesController : ControllerBase
     private string GetUserId()
         => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
 
+    // GET: /api/vendor/dispatches/incoming?status=Planned|InTransit
+    [HttpGet("incoming")]
+    public async Task<IActionResult> GetIncoming([FromQuery] string? status = null)
+    {
+        var vendorId = GetUserId();
+        if (string.IsNullOrEmpty(vendorId)) return Unauthorized();
+
+        // IMPORTANT: explicitly type IQueryable<Dispatch>
+        IQueryable<Dispatch> query = _db.Dispatch
+            .AsNoTracking()
+            .Include(d => d.Product)
+            .Include(d => d.Farmer)
+            .Where(d => d.VendorId == vendorId);
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(d => d.DeliveryStatus == status);
+        }
+        else
+        {
+            // Default: show incoming that are not delivered/cancelled
+            query = query.Where(d => d.DeliveryStatus != "Delivered" && d.DeliveryStatus != "Cancelled");
+        }
+
+        var rows = await query
+            .OrderByDescending(d => d.CreatedAt)
+            .Take(100)
+            .Select(d => new DispatchRowDto
+            {
+                DispatchId = d.DispatchId,
+                DemandRequestId = d.DemandRequestId,
+                ProductId = d.ProductId,
+                Product = d.Product.Name,
+                VendorId = d.VendorId,
+                QuantityDispatched = d.QuantityDispatched,
+                Unit = d.Unit,
+                DispatchDate = d.DispatchDate,
+                DeliveryStatus = d.DeliveryStatus,
+                CreatedAt = d.CreatedAt,
+
+                VendorName = d.Vendor.DisplayName,
+                VendorEmail = d.Vendor.Email,
+
+                // We'll show farmer in Vendor UI using these fields
+                // If you don’t have these in your DispatchRowDto yet, add them OR ignore them in UI.
+            })
+            .ToListAsync();
+
+        return Ok(rows);
+    }
+
     // POST: /api/vendor/dispatches/confirm
     [HttpPost("confirm")]
     public async Task<IActionResult> ConfirmDelivery([FromBody] VendorConfirmDeliveryDto dto)
@@ -37,23 +89,19 @@ public class VendorDispatchesController : ControllerBase
 
         if (dispatch == null) return NotFound("Dispatch not found.");
 
-        // Security: vendor can only confirm their own dispatch
+        // vendor can only confirm their own dispatch
         if (dispatch.VendorId != vendorId) return Forbid();
 
-        // Business rules
         if (dispatch.DeliveryStatus == "Cancelled")
             return BadRequest("Cancelled dispatch cannot be confirmed.");
 
-        // You can enforce InTransit -> Delivered if you want:
-        // if (dispatch.DeliveryStatus != "InTransit")
-        //     return BadRequest($"Dispatch must be InTransit. Current: {dispatch.DeliveryStatus}");
-
+        // set delivered
         dispatch.DeliveryStatus = "Delivered";
 
-        // Optional: update related demand request status
+        // optional: close demand request
         if (dispatch.DemandRequest != null)
         {
-            dispatch.DemandRequest.Status = "Fulfilled"; // or "Closed"
+            dispatch.DemandRequest.Status = "Fulfilled";
         }
 
         await _db.SaveChangesAsync();

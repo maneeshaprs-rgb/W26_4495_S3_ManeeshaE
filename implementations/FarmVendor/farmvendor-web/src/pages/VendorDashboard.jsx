@@ -153,6 +153,7 @@ export default function Vendor_Dashboard() {
 
       // refresh incoming list (and any stats if you have)
       await loadIncomingDispatches();
+      await loadMyRequests();
     } catch (e) {
       setError(e?.message || "Confirm delivery failed");
     } finally {
@@ -178,7 +179,7 @@ export default function Vendor_Dashboard() {
 
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, navigate, authHeaders]);
+  }, [token, navigate]);
 
   return (
     <div className="dashboard-page">
@@ -225,7 +226,7 @@ export default function Vendor_Dashboard() {
               <div className="stat-card">
                 <div className="stat-top">
                   <div className="stat-title">Incoming Deliveries</div>
-                  <div className="stat-value">4</div>
+                  <div className="stat-value">{incomingDispatches.length}</div>
                 </div>
                 <div className="progress"><div style={{ width: "50%" }} /></div>
               </div>
@@ -294,42 +295,48 @@ export default function Vendor_Dashboard() {
               <div className="card">
                 <div className="card-header">
                   <h2>Incoming Dispatches</h2>
-                  <button className="btn btn-secondary">View All</button>
+                  <button className="btn btn-secondary" onClick={loadIncomingDispatches}>Refresh</button>
                 </div>
 
                 <div className="card-body">
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Farmer</th>
+                        <th>Dispatch</th>
                         <th>Product</th>
-                        <th>ETA</th>
+                        <th>Qty</th>
+                        <th>Status</th>
+                        <th>Dispatch Date</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>Maple Farm</td>
-                        <td>Leaf Lettuce</td>
-                        <td>2026-02-08</td>
-                      </tr>
-                      <tr>
-                        <td>Green Field</td>
-                        <td>Milk</td>
-                        <td>2026-02-07</td>
-                      </tr>
+                      {incomingDispatches.length === 0 ? (
+                        <tr>
+                          <td colSpan="6">No incoming dispatches.</td>
+                        </tr>
+                      ) : (
+                        incomingDispatches.map((d) => (
+                          <tr key={d.dispatchId}>
+                            <td>#{d.dispatchId}</td>
+                            <td>{d.product}</td>
+                            <td>{d.quantityDispatched} {d.unit}</td>
+                            <td>{d.deliveryStatus}</td>
+                            <td>{new Date(d.dispatchDate).toISOString().slice(0, 10)}</td>
+                            <td>
+                              <button
+                                className="btn btn-primary"
+                                onClick={() => confirmDelivery(d.dispatchId)}
+                                disabled={confirmingId === d.dispatchId || d.deliveryStatus === "Delivered"}
+                              >
+                                {confirmingId === d.dispatchId ? "Confirming..." : "Confirm Delivery"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
-
-                  <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-                   <button
-                    className="btn btn-primary"
-                    onClick={() => confirmDelivery(row.dispatchId)}
-                    disabled={confirmingId === row.dispatchId}
-                  >
-                    {confirmingId === row.dispatchId ? "Confirming..." : "Confirm Delivery"}
-                  </button>
-                    <button className="btn btn-secondary">Report Issue</button>
-                  </div>
                 </div>
               </div>
             </section>
