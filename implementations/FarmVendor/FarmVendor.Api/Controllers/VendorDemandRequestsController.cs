@@ -34,6 +34,7 @@ public class VendorDemandRequestsController : ControllerBase
             .AsNoTracking()
             .Where(r => r.VendorId == vendorId)
             .Include(r => r.Product)
+            .Include(r => r.Vendor)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -50,7 +51,10 @@ public class VendorDemandRequestsController : ControllerBase
                 Qty = r.QuantityRequested,
                 Unit = r.Unit,
                 NeededBy = r.NeededBy,
-                Status = r.Status
+                Status = r.Status,
+                VendorId = r.VendorId,
+                VendorName = r.Vendor.UserName,
+                VendorEmail = r.Vendor.Email
             })
             .ToListAsync();
 

@@ -49,7 +49,7 @@ public class VendorDispatchesController : ControllerBase
 
         var rows = await query
             .OrderByDescending(d => d.CreatedAt)
-            .Take(100)
+            .Take(200)
             .Select(d => new DispatchRowDto
             {
                 DispatchId = d.DispatchId,
@@ -66,8 +66,7 @@ public class VendorDispatchesController : ControllerBase
                 VendorName = d.Vendor.DisplayName,
                 VendorEmail = d.Vendor.Email,
 
-                // We'll show farmer in Vendor UI using these fields
-                // If you don’t have these in your DispatchRowDto yet, add them OR ignore them in UI.
+                // These fields show farmer in Vendor UI 
             })
             .ToListAsync();
 
