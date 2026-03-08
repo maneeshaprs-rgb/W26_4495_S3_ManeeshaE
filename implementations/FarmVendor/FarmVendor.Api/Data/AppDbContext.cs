@@ -45,6 +45,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(r => r.VendorId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        
+        builder.Entity<DemandForecast>()
+            .HasOne(f => f.Vendor)
+            .WithMany()
+            .HasForeignKey(f => f.VendorId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<DemandForecast>()
+            .HasOne(f => f.Product)
+            .WithMany()
+            .HasForeignKey(f => f.ProductId)
+            .OnDelete(DeleteBehavior.NoAction);
+
         builder.Entity<ApplicationUser>()
             .Property(u => u.Latitude)
             .HasPrecision(9, 6);
@@ -52,5 +65,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ApplicationUser>()
             .Property(u => u.Longitude)
             .HasPrecision(9, 6);
+
     }
 }
