@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-//using Microsoft.OpenApi.Models;
+using FarmVendor.Api.Services; //Register the service
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -62,6 +62,9 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
+
+//register service
+builder.Services.AddScoped<DemandForecastService>();
 
 var app = builder.Build();
 
