@@ -16,6 +16,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RelationshipStat> RelationshipStat => Set<RelationshipStat>();
     public DbSet<InventoryLot> InventoryLot => Set<InventoryLot>();   // this resolve issue on  inventoryLot table unavailability
     public DbSet<DemandForecast> DemandForecast => Set<DemandForecast>();
+    public DbSet<RecommendedDispatchPlan> RecommendedDispatchPlan => Set<RecommendedDispatchPlan>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
