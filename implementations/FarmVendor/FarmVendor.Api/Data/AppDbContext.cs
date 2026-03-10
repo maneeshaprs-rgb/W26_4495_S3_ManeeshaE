@@ -85,5 +85,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(r => r.ProductId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        //adding RelationshipStat
+        builder.Entity<RelationshipStat>()
+            .Property(r => r.TotalRequestedQty)
+            .HasPrecision(18, 2);
+
+        builder.Entity<RelationshipStat>()
+            .Property(r => r.TotalDeliveredQty)
+            .HasPrecision(18, 2);
+
+        builder.Entity<RelationshipStat>()
+            .Property(r => r.RelationshipScore)
+            .HasPrecision(18, 2);
+
     }
 }

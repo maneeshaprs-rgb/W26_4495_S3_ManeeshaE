@@ -17,4 +17,17 @@ public class RelationshipStat
     public DateTime? LastDispatchDate { get; set; }
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    // metrics
+    public int TotalDispatches { get; set; }
+    public int DeliveredCount { get; set; }
+    public int CancelledCount { get; set; }
+    public int OnTimeDeliveredCount { get; set; }
+
+    public decimal TotalRequestedQty { get; set; }
+    public decimal TotalDeliveredQty { get; set; }
+
+    // final score (0–100)
+    public decimal RelationshipScore { get; set; }
+
+    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 }

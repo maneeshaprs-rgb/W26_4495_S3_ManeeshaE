@@ -63,9 +63,12 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-//register service
+//register services
 builder.Services.AddScoped<DemandForecastService>();
 builder.Services.AddScoped<DispatchOptimizationService>();
+builder.Services.AddScoped<RelationshipScoreService>();
+
+
 
 var app = builder.Build();
 
