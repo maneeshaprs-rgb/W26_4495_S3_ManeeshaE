@@ -1,6 +1,7 @@
 using FarmVendor.Api.Data;
 using FarmVendor.Api.Models;
 using FarmVendor.Api.Models.DTOs;
+using FarmVendor.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +15,12 @@ namespace FarmVendor.Api.Controllers;
 public class VendorDispatchesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly RelationshipScoreService _relationshipScoreService;
 
-    public VendorDispatchesController(AppDbContext db)
+    public VendorDispatchesController(AppDbContext db, RelationshipScoreService relationshipScoreService)
     {
         _db = db;
+        _relationshipScoreService = relationshipScoreService;
     }
 
     private string GetUserId()
@@ -30,11 +33,11 @@ public class VendorDispatchesController : ControllerBase
         var vendorId = GetUserId();
         if (string.IsNullOrEmpty(vendorId)) return Unauthorized();
 
-        // IMPORTANT: explicitly type IQueryable<Dispatch>
         IQueryable<Dispatch> query = _db.Dispatch
             .AsNoTracking()
             .Include(d => d.Product)
             .Include(d => d.Farmer)
+            .Include(d => d.Vendor)
             .Where(d => d.VendorId == vendorId);
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -43,7 +46,6 @@ public class VendorDispatchesController : ControllerBase
         }
         else
         {
-            // Default: show incoming that are not delivered/cancelled
             query = query.Where(d => d.DeliveryStatus != "Delivered" && d.DeliveryStatus != "Cancelled");
         }
 
@@ -62,11 +64,8 @@ public class VendorDispatchesController : ControllerBase
                 DispatchDate = d.DispatchDate,
                 DeliveryStatus = d.DeliveryStatus,
                 CreatedAt = d.CreatedAt,
-
                 VendorName = d.Vendor.DisplayName,
-                VendorEmail = d.Vendor.Email,
-
-                // These fields show farmer in Vendor UI 
+                VendorEmail = d.Vendor.Email
             })
             .ToListAsync();
 
@@ -88,22 +87,21 @@ public class VendorDispatchesController : ControllerBase
 
         if (dispatch == null) return NotFound("Dispatch not found.");
 
-        // vendor can only confirm their own dispatch
         if (dispatch.VendorId != vendorId) return Forbid();
 
         if (dispatch.DeliveryStatus == "Cancelled")
             return BadRequest("Cancelled dispatch cannot be confirmed.");
 
-        // set delivered
         dispatch.DeliveryStatus = "Delivered";
 
-        // optional: close demand request
         if (dispatch.DemandRequest != null)
         {
             dispatch.DemandRequest.Status = "Fulfilled";
         }
 
         await _db.SaveChangesAsync();
+
+        await _relationshipScoreService.UpdateRelationshipScoreAsync(dispatch.FarmerId, dispatch.VendorId);
 
         return Ok(new
         {
