@@ -16,6 +16,10 @@ import VendorStock from "./pages/VendorStock";
 import VendorRequests from "./pages/VendorRequests";
 import VendorIncoming from "./pages/VendorIncoming";
 
+//analytics
+import FarmerAnalytics from "./pages/FarmerAnalytics";
+import VendorAnalytics from "./pages/VendorAnalytics";
+
 function App() {
   return (
     <BrowserRouter>
@@ -32,6 +36,7 @@ function App() {
             <Route path="/farmer/products" element={<FarmerProducts />} />
             <Route path="/farmer/requests" element={<FarmerRequests />} />
             <Route path="/farmer/dispatch" element={<FarmerDispatch />} />
+            <Route path="/farmer/analytics" element={<FarmerAnalytics />} />
           </Route>
 
           {/* Vendor-only */}
@@ -40,6 +45,7 @@ function App() {
             <Route path="/vendor/stock" element={<VendorStock />} />
             <Route path="/vendor/requests" element={<VendorRequests />} />
             <Route path="/vendor/incoming" element={<VendorIncoming />} />
+            <Route path="/vendor/analytics" element={<VendorAnalytics />} />
           </Route>
         </Route>
 
