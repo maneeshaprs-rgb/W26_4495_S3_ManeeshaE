@@ -65,6 +65,7 @@ builder.Services.AddCors(options =>
 
 //register service
 builder.Services.AddScoped<DemandForecastService>();
+builder.Services.AddScoped<DispatchOptimizationService>();
 
 var app = builder.Build();
 
