@@ -11,4 +11,12 @@ public class DemandForecastRowDto
     public string ModelName { get; set; } = "";
     public int LookbackPeriods { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    //use for forecasting
+    public decimal PredictedQuantity { get; set; }
+    public decimal? LowerBound { get; set; }
+    public decimal? UpperBound { get; set; }
+    public string ModelType { get; set; } = "";
+    public string Granularity { get; set; } = "";
+
 }
