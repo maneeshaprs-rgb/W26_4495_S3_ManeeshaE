@@ -5,3 +5,15 @@
 4.	“How to design DTO for dispatch status update”
 5.	“How to return demandRequestId in projection query”
 6.  fix allignment issue in styling auth.css
+
+1.	“How to implement a moving-average demand forecasting module in ASP.NET Core using EF Core data”
+2.	“Design the DemandForecast model and API endpoints for generating and retrieving forecast results”
+3.	“How to create a greedy optimization algorithm to allocate farmer inventory to vendor demand requests”
+4.	“How to design RecommendedDispatchPlan table and DispatchOptimizationService for dispatch recommendation logic”
+5.	“How to implement relationship score tracking between farmers and vendors based on delivery outcomes”
+6.	“How to update relationship scores automatically when dispatch status changes to Delivered or Cancelled”
+7.	“Fix dependency injection error when using RelationshipScoreService in ASP.NET Core controller”
+8.	“Create React frontend views to display forecast results, optimization plans, and relationship statistics”
+9.	“How to integrate backend analytics endpoints with React dashboard pages using secure API calls”
+10.	“How to export database data to CSV for research experiments and evaluation metrics”
+
