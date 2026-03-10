@@ -67,5 +67,23 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .Property(u => u.Longitude)
             .HasPrecision(9, 6);
 
+        builder.Entity<RecommendedDispatchPlan>()
+            .HasOne(r => r.Farmer)
+            .WithMany()
+            .HasForeignKey(r => r.FarmerId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<RecommendedDispatchPlan>()
+            .HasOne(r => r.Vendor)
+            .WithMany()
+            .HasForeignKey(r => r.VendorId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<RecommendedDispatchPlan>()
+            .HasOne(r => r.Product)
+            .WithMany()
+            .HasForeignKey(r => r.ProductId)
+            .OnDelete(DeleteBehavior.NoAction);
+
     }
 }
