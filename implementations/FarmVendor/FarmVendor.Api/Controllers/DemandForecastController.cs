@@ -72,39 +72,42 @@ public class DemandForecastController : ControllerBase
 
     // GET: /api/forecasts?forecastDate=2026-03-10&modelName=MLNET_SSA
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
-        [FromQuery] DateTime? forecastDate,
-        [FromQuery] string? modelName)
+public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
+    [FromQuery] DateTime? forecastDate,
+    [FromQuery] string? modelName)
+{
+    var query = _db.DemandForecast
+        .AsNoTracking()
+        .Include(f => f.Product)
+        .AsQueryable();
+
+    if (forecastDate.HasValue)
+        query = query.Where(f => f.ForecastDate.Date == forecastDate.Value.Date);
+
+    if (!string.IsNullOrWhiteSpace(modelName))
     {
-        var query = _db.DemandForecast
-            .AsNoTracking()
-            .Include(f => f.Product)
-            .AsQueryable();
-
-        if (forecastDate.HasValue)
-            query = query.Where(f => f.ForecastDate.Date == forecastDate.Value.Date);
-
-        if (!string.IsNullOrWhiteSpace(modelName))
-            query = query.Where(f => f.ModelName == modelName);
-
-        var rows = await query
-            .OrderByDescending(f => f.CreatedAt)
-            .Select(f => new DemandForecastRowDto
-            {
-                DemandForecastId = f.DemandForecastId,
-                VendorId = f.VendorId,
-                ProductId = f.ProductId,
-                ProductName = f.Product.Name,
-                ForecastDate = f.ForecastDate,
-                ForecastQty = f.ForecastQty,
-                ModelName = f.ModelName,
-                LookbackPeriods = f.LookbackPeriods,
-                CreatedAt = f.CreatedAt
-            })
-            .ToListAsync();
-
-        return Ok(rows);
+        var normalizedModelName = modelName.Trim().ToLower();
+        query = query.Where(f => f.ModelName.ToLower() == normalizedModelName);
     }
+
+    var rows = await query
+        .OrderByDescending(f => f.CreatedAt)
+        .Select(f => new DemandForecastRowDto
+        {
+            DemandForecastId = f.DemandForecastId,
+            VendorId = f.VendorId,
+            ProductId = f.ProductId,
+            ProductName = f.Product.Name,
+            ForecastDate = f.ForecastDate,
+            ForecastQty = f.ForecastQty,
+            ModelName = f.ModelName,
+            LookbackPeriods = f.LookbackPeriods,
+            CreatedAt = f.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(rows);
+}
 
     // GET: /api/forecasts/compare?vendorId=abc&productId=1&forecastDate=2026-03-10
     [HttpGet("compare")]
@@ -128,4 +131,17 @@ public class DemandForecastController : ControllerBase
 
         return Ok(result);
     }
+
+    //check what model names actually exist in the table
+    [HttpGet("models")]
+public async Task<IActionResult> GetModelNames()
+{
+    var models = await _db.DemandForecast
+        .AsNoTracking()
+        .Select(f => f.ModelName)
+        .Distinct()
+        .ToListAsync();
+
+    return Ok(models);
+}
 }
