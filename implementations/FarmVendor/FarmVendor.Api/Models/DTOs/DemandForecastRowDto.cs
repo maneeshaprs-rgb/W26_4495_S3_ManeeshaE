@@ -9,7 +9,7 @@ public class DemandForecastRowDto
     public DateTime ForecastDate { get; set; }
     public decimal ForecastQty { get; set; }
     public string ModelName { get; set; } = "";
-    public int LookbackPeriods { get; set; }
+    public int? LookbackPeriods { get; set; }
     public DateTime CreatedAt { get; set; }
 
     //use for forecasting
