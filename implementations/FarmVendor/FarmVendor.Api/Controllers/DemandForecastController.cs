@@ -28,27 +28,53 @@ public class DemandForecastController : ControllerBase
         if (dto.ForecastDate == default)
             return BadRequest("ForecastDate is required.");
 
-        if (dto.LookbackPeriods <= 0)
-            return BadRequest("LookbackPeriods must be greater than 0.");
+        if (string.IsNullOrWhiteSpace(dto.ModelName))
+            dto.ModelName = "MovingAverage";
 
-        var forecasts = await _forecastService.GenerateMovingAverageForecastsAsync(
-            dto.ForecastDate,
-            dto.LookbackPeriods
-        );
+        List<Models.DemandForecast> forecasts;
+
+        if (dto.ModelName.Equals("MovingAverage", StringComparison.OrdinalIgnoreCase))
+        {
+            if (dto.LookbackPeriods <= 0)
+                return BadRequest("LookbackPeriods must be greater than 0.");
+
+            forecasts = await _forecastService.GenerateMovingAverageForecastsAsync(
+                dto.ForecastDate,
+                dto.LookbackPeriods
+            );
+        }
+        else if (dto.ModelName.Equals("MLNET_SSA", StringComparison.OrdinalIgnoreCase))
+        {
+            if (dto.Horizon <= 0)
+                return BadRequest("Horizon must be greater than 0.");
+
+            forecasts = await _forecastService.GenerateMlForecastsAsync(
+                dto.ForecastDate,
+                dto.Horizon,
+                dto.Granularity ?? "Daily"
+            );
+        }
+        else
+        {
+            return BadRequest("Unsupported modelName. Use 'MovingAverage' or 'MLNET_SSA'.");
+        }
 
         var count = await _forecastService.SaveForecastsAsync(forecasts);
 
         return Ok(new
         {
             Message = "Forecast generation completed.",
+            ModelName = dto.ModelName,
             ForecastCount = forecasts.Count,
             SavedRows = count
         });
     }
 
-    // GET: /api/forecasts?forecastDate=2026-03-10
+    // GET: /api/forecasts?forecastDate=2026-03-10&modelName=MLNET_SSA
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts([FromQuery] DateTime? forecastDate)
+    public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
+        [FromQuery] DateTime? forecastDate,
+        [FromQuery] string? modelName)
     {
         var query = _db.DemandForecast
             .AsNoTracking()
@@ -57,6 +83,9 @@ public class DemandForecastController : ControllerBase
 
         if (forecastDate.HasValue)
             query = query.Where(f => f.ForecastDate.Date == forecastDate.Value.Date);
+
+        if (!string.IsNullOrWhiteSpace(modelName))
+            query = query.Where(f => f.ModelName == modelName);
 
         var rows = await query
             .OrderByDescending(f => f.CreatedAt)
@@ -75,5 +104,28 @@ public class DemandForecastController : ControllerBase
             .ToListAsync();
 
         return Ok(rows);
+    }
+
+    // GET: /api/forecasts/compare?vendorId=abc&productId=1&forecastDate=2026-03-10
+    [HttpGet("compare")]
+    public async Task<IActionResult> CompareForecasts(
+        [FromQuery] string vendorId,
+        [FromQuery] int productId,
+        [FromQuery] DateTime forecastDate,
+        [FromQuery] int lookbackPeriods = 3)
+    {
+        if (string.IsNullOrWhiteSpace(vendorId))
+            return BadRequest("VendorId is required.");
+
+        var result = await _forecastService.CompareForecastForPairAsync(
+            vendorId,
+            productId,
+            forecastDate,
+            lookbackPeriods);
+
+        if (result == null)
+            return NotFound("Not enough historical data to compare forecasts.");
+
+        return Ok(result);
     }
 }

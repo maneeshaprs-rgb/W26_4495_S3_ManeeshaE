@@ -8,13 +8,13 @@ public class DemandForecast
     public int ProductId { get; set; }
 
     public DateTime ForecastDate { get; set; }
+    public decimal ForecastQty { get; set; }
 
-    public decimal PredictedQuantity { get; set; }
-    public decimal? LowerBound { get; set; }
-    public decimal? UpperBound { get; set; }
+    public string ModelName { get; set; } = "";
+    public int? LookbackPeriods { get; set; }
 
-    public string ModelType { get; set; } = ""; // algorithm : MovingAverage // MLNET_SSA
-    public string Granularity { get; set; } = "Daily"; // Daily / Weekly
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public ApplicationUser Vendor { get; set; } = null!;
+    public Product Product { get; set; } = null!;
 }
