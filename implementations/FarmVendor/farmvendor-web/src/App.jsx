@@ -19,7 +19,9 @@ import VendorIncoming from "./pages/VendorIncoming";
 //analytics
 import FarmerAnalytics from "./pages/FarmerAnalytics";
 import VendorAnalytics from "./pages/VendorAnalytics";
-
+//analytics ===Machine Learning model: ML.NET SSA forecasting
+import FarmerForecast from "./pages/FarmerForecast";
+import VendorForecast from "./pages/VendorForecast";
 function App() {
   return (
     <BrowserRouter>
@@ -37,6 +39,8 @@ function App() {
             <Route path="/farmer/requests" element={<FarmerRequests />} />
             <Route path="/farmer/dispatch" element={<FarmerDispatch />} />
             <Route path="/farmer/analytics" element={<FarmerAnalytics />} />
+            <Route path="/farmer/forecasts" element={<FarmerForecast />} />
+
           </Route>
 
           {/* Vendor-only */}
@@ -46,6 +50,7 @@ function App() {
             <Route path="/vendor/requests" element={<VendorRequests />} />
             <Route path="/vendor/incoming" element={<VendorIncoming />} />
             <Route path="/vendor/analytics" element={<VendorAnalytics />} />
+            <Route path="/vendor/forecasts" element={<VendorForecast />} />
           </Route>
         </Route>
 

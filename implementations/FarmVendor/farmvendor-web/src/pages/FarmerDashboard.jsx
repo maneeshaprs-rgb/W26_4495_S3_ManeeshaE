@@ -245,6 +245,9 @@ export default function FarmerDashboard() {
             <div className="sidebar-link" onClick={() => navigate("/farmer/analytics")}>
               Analytics
             </div>
+            <div className="sidebar-link" onClick={() => navigate("/farmer/forecasts")}>
+              Forecast
+            </div>
             <div className="sidebar-link" onClick={logout}>
               Logout
             </div>

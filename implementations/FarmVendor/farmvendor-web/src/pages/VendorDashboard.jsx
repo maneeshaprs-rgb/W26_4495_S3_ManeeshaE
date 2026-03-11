@@ -202,6 +202,9 @@ export default function Vendor_Dashboard() {
             <div className="sidebar-link" onClick={() => navigate("/vendor/analytics")}>
               Analytics
             </div>
+            <div className="sidebar-link" onClick={() => navigate("/vendor/forecasts")}>
+              Forecast
+            </div>
             <div className="sidebar-link" onClick={logout}>Logout</div>
           </nav>
         </aside>
