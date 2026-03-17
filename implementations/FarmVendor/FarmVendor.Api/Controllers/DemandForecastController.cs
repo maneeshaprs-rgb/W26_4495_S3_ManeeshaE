@@ -144,4 +144,25 @@ public async Task<IActionResult> GetModelNames()
 
     return Ok(models);
 }
+
+
+[HttpGet("debug-history")]
+public async Task<IActionResult> DebugHistory()
+{
+    var data = await _db.DemandRequest
+        .AsNoTracking()
+        .GroupBy(r => new { r.VendorId, r.ProductId })
+        .Select(g => new
+        {
+            g.Key.VendorId,
+            g.Key.ProductId,
+            Count = g.Count(),
+            MinDate = g.Min(x => x.CreatedAt),
+            MaxDate = g.Max(x => x.CreatedAt)
+        })
+        .OrderByDescending(x => x.Count)
+        .ToListAsync();
+
+    return Ok(data);
+}
 }
