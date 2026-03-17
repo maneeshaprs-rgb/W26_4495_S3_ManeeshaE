@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using FarmVendor.Api.Services; //Register the service
 using System.Text;
+using FarmVendor.Api.Hubs;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,7 +70,8 @@ builder.Services.AddScoped<DemandForecastService>();
 builder.Services.AddScoped<DispatchOptimizationService>();
 builder.Services.AddScoped<RelationshipScoreService>();
 builder.Services.AddScoped<DemandForecastService>();
-
+builder.Services.AddScoped<ChatService>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -87,6 +90,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapHub<ChatHub>("/hubs/chat");
 // seed
 await SeedData.InitializeAsync(app.Services);
 

@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "../styles/auth.css";
 
-const API_BASE = import.meta.env.VITE_API_URL;//importing backend base url from .env file
-console.log("API_BASE =", API_BASE);//this is for debugging purpose
-const USE_MOCK = false; // set false when backend is running
+const API_BASE = import.meta.env.VITE_API_URL;
+console.log("API_BASE =", API_BASE);
+const USE_MOCK = false;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,11 +23,13 @@ export default function Login() {
 
     try {
       if (USE_MOCK) {
-        // Mock login: decide role by email
         const role = form.email.toLowerCase().includes("vendor") ? "Vendor" : "Farmer";
+
         localStorage.setItem("token", "mock-jwt-token");
         localStorage.setItem("role", role);
         localStorage.setItem("displayName", role === "Vendor" ? "Vendor User" : "Farmer User");
+        localStorage.setItem("userId", role === "Vendor" ? "mock-vendor-id" : "mock-farmer-id");
+
         navigate(role === "Vendor" ? "/vendor" : "/farmer");
         return;
       }
@@ -48,10 +50,11 @@ export default function Login() {
 
       const data = await res.json();
 
-      // Expecting: { token, role, displayName }
+      // Expecting: { token, role, displayName, userId }
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("displayName", data.displayName);
+      localStorage.setItem("userId", data.userId);
 
       navigate(data.role === "Vendor" ? "/vendor" : "/farmer");
     } catch (err) {
@@ -64,7 +67,6 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        {/* Left panel */}
         <div className="auth-header">
           <div className="auth-brand">
             <div className="auth-logo">FV</div>
@@ -86,7 +88,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Right panel */}
         <div className="auth-body">
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>Login</h3>
           <div className="auth-hint">Use your email and password to continue.</div>
@@ -126,7 +127,6 @@ export default function Login() {
               {loading ? "Signing in..." : "Login"}
             </button>
 
-            {/* REMOVE this before live if you want */}
             <div className="auth-extra">
               <button
                 type="button"
@@ -148,8 +148,6 @@ export default function Login() {
           <div className="auth-footer">
             Don’t have an account? <Link to="/register">Register</Link>
           </div>
-
-          
         </div>
       </div>
     </div>

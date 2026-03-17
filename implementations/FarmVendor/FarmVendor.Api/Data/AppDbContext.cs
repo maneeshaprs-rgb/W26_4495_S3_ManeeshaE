@@ -17,6 +17,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InventoryLot> InventoryLot => Set<InventoryLot>();   // this resolve issue on  inventoryLot table unavailability
     public DbSet<DemandForecast> DemandForecast => Set<DemandForecast>();
     public DbSet<RecommendedDispatchPlan> RecommendedDispatchPlan => Set<RecommendedDispatchPlan>();
+    public DbSet<Conversation> Conversation => Set<Conversation>();
+    public DbSet<ChatMessage> ChatMessage => Set<ChatMessage>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -97,6 +99,34 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<RelationshipStat>()
             .Property(r => r.RelationshipScore)
             .HasPrecision(18, 2);
+
+        builder.Entity<Conversation>()
+            .HasOne(c => c.Farmer)
+            .WithMany()
+            .HasForeignKey(c => c.FarmerId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<Conversation>()
+            .HasOne(c => c.Vendor)
+            .WithMany()
+            .HasForeignKey(c => c.VendorId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<ChatMessage>()
+            .HasOne(m => m.Conversation)
+            .WithMany(c => c.Messages)
+            .HasForeignKey(m => m.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ChatMessage>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<ChatMessage>()
+            .Property(m => m.MessageText)
+            .HasMaxLength(1000);
 
     }
 }
