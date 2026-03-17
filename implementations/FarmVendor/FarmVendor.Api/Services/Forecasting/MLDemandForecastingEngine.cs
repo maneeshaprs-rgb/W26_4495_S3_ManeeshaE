@@ -16,7 +16,7 @@ public class MLDemandForecastingEngine
         List<float> orderedSeries,
         int horizon)
     {
-        if (orderedSeries == null || orderedSeries.Count < 10)
+        if (orderedSeries == null || orderedSeries.Count < 5)
             throw new InvalidOperationException("Not enough historical data to train forecasting model.");
 
         var data = orderedSeries
@@ -25,11 +25,11 @@ public class MLDemandForecastingEngine
 
         IDataView dataView = _mlContext.Data.LoadFromEnumerable(data);
 
-        int seriesLength = Math.Max(orderedSeries.Count, horizon + 10);
         int trainSize = orderedSeries.Count;
+        int seriesLength = orderedSeries.Count;
 
-        // reasonable defaults; tune later for research comparison
-        int windowSize = Math.Min(7, Math.Max(3, orderedSeries.Count / 4));
+        // safer settings for small datasets
+        int windowSize = Math.Min(3, Math.Max(2, orderedSeries.Count / 3));
 
         var pipeline = _mlContext.Forecasting.ForecastBySsa(
             outputColumnName: nameof(DemandForecastPrediction.ForecastedQuantity),
@@ -51,9 +51,9 @@ public class MLDemandForecastingEngine
 
         return new ForecastTrainingResult
         {
-            Forecast = prediction.ForecastedQuantity.ToList(),
-            LowerBounds = prediction.LowerBoundQuantity.ToList(),
-            UpperBounds = prediction.UpperBoundQuantity.ToList()
+            Forecast = prediction.ForecastedQuantity?.ToList() ?? new List<float>(),
+            LowerBounds = prediction.LowerBoundQuantity?.ToList() ?? new List<float>(),
+            UpperBounds = prediction.UpperBoundQuantity?.ToList() ?? new List<float>()
         };
     }
 }

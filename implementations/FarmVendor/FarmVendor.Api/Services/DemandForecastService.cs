@@ -67,11 +67,10 @@ public class DemandForecastService
 
     // =========================================================
     // 2) ML.NET FORECAST
-    //    Generates forecasts for each VendorId + ProductId group
     // =========================================================
     public async Task<List<DemandForecast>> GenerateMlForecastsAsync(
         DateTime forecastStartDate,
-        int horizon = 7,
+        int horizon = 3,
         string granularity = "Daily")
     {
         if (horizon <= 0)
@@ -79,6 +78,7 @@ public class DemandForecastService
 
         var requestGroups = await _db.DemandRequest
             .AsNoTracking()
+            .Where(r => r.CreatedAt < forecastStartDate)
             .GroupBy(r => new { r.VendorId, r.ProductId })
             .Select(g => new
             {
@@ -97,9 +97,13 @@ public class DemandForecastService
                 forecastStartDate,
                 granularity);
 
-            // ML.NET needs enough history
-            if (series.Count < 10)
+            // Lowered from 10 to 5 so current dataset can work
+            if (series.Count < 5)
+            {
+                Console.WriteLine(
+                    $"Skipped ML forecast for Vendor={group.VendorId}, Product={group.ProductId}, Reason=Not enough history, SeriesCount={series.Count}");
                 continue;
+            }
 
             var orderedValues = series
                 .OrderBy(x => x.PeriodDate)
@@ -110,41 +114,51 @@ public class DemandForecastService
 
             try
             {
-                mlResult = _mlEngine.TrainAndForecast(orderedValues, horizon);
-            }
-            catch
-            {
-                continue;
-            }
+                // Avoid asking for a horizon larger than the data can support
+                var safeHorizon = Math.Min(horizon, Math.Max(1, orderedValues.Count / 2));
 
-            var lastHistoryDate = series.Max(x => x.PeriodDate);
+                mlResult = _mlEngine.TrainAndForecast(orderedValues, safeHorizon);
 
-            for (int i = 0; i < horizon; i++)
-            {
-                DateTime nextDate;
-
-                if (granularity.Equals("Weekly", StringComparison.OrdinalIgnoreCase))
-                    nextDate = lastHistoryDate.AddDays(7 * (i + 1));
-                else
-                    nextDate = lastHistoryDate.AddDays(i + 1);
-
-                decimal qty = 0;
-                if (i < mlResult.Forecast.Count)
-                    qty = Math.Round(Convert.ToDecimal(Math.Max(0, mlResult.Forecast[i])), 2);
-
-                allForecasts.Add(new DemandForecast
+                if (mlResult.Forecast == null || mlResult.Forecast.Count == 0)
                 {
-                    VendorId = group.VendorId,
-                    ProductId = group.ProductId,
-                    ForecastDate = nextDate.Date,
-                    ForecastQty = qty,
-                    ModelName = "MLNET_SSA",
-                    LookbackPeriods = null, // not relevant for ML model
-                    CreatedAt = DateTime.UtcNow
-                });
+                    Console.WriteLine(
+                        $"ML forecast returned no results for Vendor={group.VendorId}, Product={group.ProductId}");
+                    continue;
+                }
+
+                var lastHistoryDate = series.Max(x => x.PeriodDate);
+
+                for (int i = 0; i < mlResult.Forecast.Count; i++)
+                {
+                    DateTime nextDate =
+                        granularity.Equals("Weekly", StringComparison.OrdinalIgnoreCase)
+                            ? lastHistoryDate.AddDays(7 * (i + 1))
+                            : lastHistoryDate.AddDays(i + 1);
+
+                    decimal qty = Math.Round(
+                        Convert.ToDecimal(Math.Max(0, mlResult.Forecast[i])), 2);
+
+                    allForecasts.Add(new DemandForecast
+                    {
+                        VendorId = group.VendorId,
+                        ProductId = group.ProductId,
+                        ForecastDate = nextDate.Date,
+                        ForecastQty = qty,
+                        ModelName = "MLNET_SSA",
+                        LookbackPeriods = null,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"ML forecast failed for Vendor={group.VendorId}, Product={group.ProductId}. Error={ex.Message}");
+                continue;
             }
         }
 
+        Console.WriteLine($"Total ML forecasts generated: {allForecasts.Count}");
         return allForecasts;
     }
 
@@ -205,17 +219,29 @@ public class DemandForecastService
 
         decimal mlPrediction = 0;
 
-        if (dailySeries.Count >= 10)
+        // Lowered from 10 to 5
+        if (dailySeries.Count >= 5)
         {
-            var orderedValues = dailySeries
-                .OrderBy(x => x.PeriodDate)
-                .Select(x => (float)x.TotalQuantity)
-                .ToList();
+            try
+            {
+                var orderedValues = dailySeries
+                    .OrderBy(x => x.PeriodDate)
+                    .Select(x => (float)x.TotalQuantity)
+                    .ToList();
 
-            var mlResult = _mlEngine.TrainAndForecast(orderedValues, 1);
-            if (mlResult.Forecast.Count > 0)
-                mlPrediction = Math.Round(
-                    Convert.ToDecimal(Math.Max(0, mlResult.Forecast[0])), 2);
+                var mlResult = _mlEngine.TrainAndForecast(orderedValues, 1);
+
+                if (mlResult.Forecast.Count > 0)
+                {
+                    mlPrediction = Math.Round(
+                        Convert.ToDecimal(Math.Max(0, mlResult.Forecast[0])), 2);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"Compare forecast ML failed for Vendor={vendorId}, Product={productId}. Error={ex.Message}");
+            }
         }
 
         return new
