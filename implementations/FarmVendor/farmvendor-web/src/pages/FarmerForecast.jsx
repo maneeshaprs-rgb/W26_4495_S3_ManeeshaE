@@ -5,7 +5,9 @@ import {
   generateForecasts,
   getForecasts,
   getForecastModels,
+  getForecastChartData,
 } from "../assets/forecastApi";
+import ForecastLineChart from "../assets/components/ForecastLineChart";
 
 export default function FarmerAnalytics() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export default function FarmerAnalytics() {
 
   const [rows, setRows] = useState([]);
   const [models, setModels] = useState([]);
+  const [chartData, setChartData] = useState([]);
 
   const [form, setForm] = useState({
     forecastDate: new Date().toISOString().slice(0, 10),
@@ -26,6 +29,12 @@ export default function FarmerAnalytics() {
     lookbackPeriods: 3,
     horizon: 7,
     granularity: "Daily",
+  });
+
+  const [chartForm, setChartForm] = useState({
+    vendorId: "",
+    productId: "",
+    forecastDate: new Date().toISOString().slice(0, 10),
   });
 
   const authHeaders = useMemo(() => {
@@ -99,6 +108,26 @@ export default function FarmerAnalytics() {
       setError(e?.message || "Failed to generate forecasts");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadChart = async () => {
+    setError("");
+    setChartData([]);
+
+    try {
+      const data = await getForecastChartData(
+        {
+          vendorId: chartForm.vendorId,
+          productId: Number(chartForm.productId),
+          forecastDate: chartForm.forecastDate,
+          modelName: "MLNET_SSA",
+        },
+        token
+      );
+      setChartData(data);
+    } catch (e) {
+      setError(e?.message || "Failed to load chart");
     }
   };
 
@@ -280,6 +309,62 @@ export default function FarmerAnalytics() {
                           {m}
                         </span>
                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section style={{ marginTop: 14 }}>
+              <div className="card">
+                <div className="card-header">
+                  <h2>Forecast Chart</h2>
+                </div>
+
+                <div className="card-body">
+                  <div className="modal-body" style={{ padding: 0 }}>
+                    <label className="field">
+                      <span>Vendor ID</span>
+                      <input
+                        value={chartForm.vendorId}
+                        onChange={(e) =>
+                          setChartForm((prev) => ({ ...prev, vendorId: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Product ID</span>
+                      <input
+                        type="number"
+                        value={chartForm.productId}
+                        onChange={(e) =>
+                          setChartForm((prev) => ({ ...prev, productId: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Forecast Date</span>
+                      <input
+                        type="date"
+                        value={chartForm.forecastDate}
+                        onChange={(e) =>
+                          setChartForm((prev) => ({ ...prev, forecastDate: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <div className="modal-actions" style={{ justifyContent: "flex-start" }}>
+                      <button type="button" className="btn btn-primary" onClick={loadChart}>
+                        Load Chart
+                      </button>
+                    </div>
+                  </div>
+
+                  {chartData.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <ForecastLineChart chartPoints={chartData} />
                     </div>
                   )}
                 </div>

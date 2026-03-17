@@ -165,4 +165,23 @@ public async Task<IActionResult> DebugHistory()
 
     return Ok(data);
 }
+//end point for charts
+[HttpGet("chart")]
+public async Task<IActionResult> GetForecastChartData(
+    [FromQuery] string vendorId,
+    [FromQuery] int productId,
+    [FromQuery] DateTime forecastDate,
+    [FromQuery] string modelName = "MLNET_SSA")
+{
+    if (string.IsNullOrWhiteSpace(vendorId))
+        return BadRequest("VendorId is required.");
+
+    var data = await _forecastService.GetForecastChartDataAsync(
+        vendorId,
+        productId,
+        forecastDate,
+        modelName);
+
+    return Ok(data);
+}
 }

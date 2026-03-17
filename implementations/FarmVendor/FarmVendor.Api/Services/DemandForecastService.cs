@@ -2,6 +2,7 @@ using FarmVendor.Api.Data;
 using FarmVendor.Api.Models;
 using FarmVendor.Api.Services.Forecasting;
 using Microsoft.EntityFrameworkCore;
+using FarmVendor.Api.Models.DTOs;
 
 namespace FarmVendor.Api.Services;
 
@@ -310,5 +311,42 @@ public class DemandForecastService
     {
         public DateTime PeriodDate { get; set; }
         public decimal TotalQuantity { get; set; }
+    }
+
+    public async Task<List<ForecastChartPointDto>> GetForecastChartDataAsync(
+    string vendorId,
+    int productId,
+    DateTime forecastDate,
+    string modelName = "MLNET_SSA")
+    {
+        var history = await _db.DemandRequest
+            .AsNoTracking()
+            .Where(r => r.VendorId == vendorId &&
+                        r.ProductId == productId &&
+                        r.CreatedAt < forecastDate)
+            .OrderBy(r => r.CreatedAt)
+            .Select(r => new ForecastChartPointDto
+            {
+                Date = r.CreatedAt.ToString("yyyy-MM-dd"),
+                Quantity = r.QuantityRequested,
+                Series = "Historical"
+            })
+            .ToListAsync();
+
+        var forecasts = await _db.DemandForecast
+            .AsNoTracking()
+            .Where(f => f.VendorId == vendorId &&
+                        f.ProductId == productId &&
+                        f.ModelName == modelName)
+            .OrderBy(f => f.ForecastDate)
+            .Select(f => new ForecastChartPointDto
+            {
+                Date = f.ForecastDate.ToString("yyyy-MM-dd"),
+                Quantity = f.ForecastQty,
+                Series = "Forecast"
+            })
+            .ToListAsync();
+
+        return history.Concat(forecasts).ToList();
     }
 }

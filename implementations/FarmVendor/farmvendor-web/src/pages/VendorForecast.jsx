@@ -5,7 +5,9 @@ import {
   generateForecasts,
   getForecasts,
   compareForecasts,
+  getForecastChartData,
 } from "../assets/forecastApi";
+import ForecastLineChart from "../assets/components/ForecastLineChart";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -19,6 +21,7 @@ export default function VendorAnalytics() {
   const [myRequests, setMyRequests] = useState([]);
   const [forecastRows, setForecastRows] = useState([]);
   const [comparison, setComparison] = useState(null);
+  const [chartData, setChartData] = useState([]);
 
   const [form, setForm] = useState({
     forecastDate: new Date().toISOString().slice(0, 10),
@@ -52,11 +55,13 @@ export default function VendorAnalytics() {
 
     const text = await res.text();
     if (!res.ok) throw new Error(text || "Failed to load vendor requests");
+
     const data = JSON.parse(text);
     setMyRequests(data);
 
     const vendorId = data?.[0]?.vendorId ?? "";
     const productId = data?.[0]?.productId ?? "";
+
     if (vendorId && productId) {
       setCompareForm((prev) => ({
         ...prev,
@@ -110,26 +115,41 @@ export default function VendorAnalytics() {
   };
 
   const handleCompare = async (e) => {
-    e.preventDefault();
-    setError("");
-    setComparison(null);
+  e.preventDefault();
+  setError("");
+  setComparison(null);
+  setChartData([]);
 
-    try {
-      const data = await compareForecasts(
-        {
-          vendorId: compareForm.vendorId,
-          productId: Number(compareForm.productId),
-          forecastDate: compareForm.forecastDate,
-          lookbackPeriods: Number(compareForm.lookbackPeriods),
-        },
-        token
-      );
+  try {
+    const comparePayload = {
+      vendorId: compareForm.vendorId,
+      productId: Number(compareForm.productId),
+      forecastDate: compareForm.forecastDate,
+      lookbackPeriods: Number(compareForm.lookbackPeriods),
+    };
 
-      setComparison(data);
-    } catch (e) {
-      setError(e?.message || "Failed to compare forecasts");
+    const compareResult = await compareForecasts(comparePayload, token);
+    setComparison(compareResult);
+
+    const chartResult = await getForecastChartData(
+      {
+        vendorId: compareForm.vendorId,
+        productId: Number(compareForm.productId),
+        forecastDate: compareForm.forecastDate,
+        modelName: "MLNET_SSA",
+      },
+      token
+    );
+
+    setChartData(chartResult);
+
+    if (!chartResult || chartResult.length === 0) {
+      setError("No chart data found for this vendor/product/date.");
     }
-  };
+  } catch (e) {
+    setError(e?.message || "Failed to compare forecasts");
+  }
+};
 
   useEffect(() => {
     if (!token) {
@@ -350,11 +370,22 @@ export default function VendorAnalytics() {
                       </div>
                       <div><b>Vendor:</b> {comparison.vendorId}</div>
                       <div><b>Product:</b> {comparison.productId}</div>
-                      <div><b>Forecast Date:</b> {new Date(comparison.forecastDate).toISOString().slice(0, 10)}</div>
+                      <div>
+                        <b>Forecast Date:</b>{" "}
+                        {new Date(comparison.forecastDate).toISOString().slice(0, 10)}
+                      </div>
                       <div><b>Moving Average:</b> {comparison.movingAverageForecast}</div>
                       <div><b>ML.NET Forecast:</b> {comparison.mlNetForecast}</div>
                     </div>
                   )}
+
+                  <div style={{ marginTop: 20 }}>
+                  {chartData.length > 0 ? (
+                    <ForecastLineChart chartPoints={chartData} />
+                  ) : (
+                    comparison && <div>No chart data available for this selection.</div>
+                  )}
+                </div>
                 </div>
               </div>
             </section>

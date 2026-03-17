@@ -62,3 +62,22 @@ export async function getForecastModels(token) {
   if (!res.ok) throw new Error(text || "Failed to load model names");
   return JSON.parse(text);
 }
+
+export async function getForecastChartData({ vendorId, productId, forecastDate, modelName }, token) {
+  const params = new URLSearchParams({
+    vendorId,
+    productId: String(productId),
+    forecastDate,
+    modelName: modelName || "MLNET_SSA",
+  });
+
+  const res = await fetch(`${API_BASE}/api/forecasts/chart?${params.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Failed to load chart data");
+  return JSON.parse(text);
+}
