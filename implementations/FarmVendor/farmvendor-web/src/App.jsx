@@ -44,7 +44,7 @@ function App() {
             <Route path="/farmer/dispatch" element={<FarmerDispatch />} />
             <Route path="/farmer/analytics" element={<FarmerAnalytics />} />
             <Route path="/farmer/forecasts" element={<FarmerForecast />} />
-            <Route path="/vendor/chat" element={<VendorChat />} />
+            <Route path="/farmer/chat" element={<FarmerChat />} />
 
           </Route>
 

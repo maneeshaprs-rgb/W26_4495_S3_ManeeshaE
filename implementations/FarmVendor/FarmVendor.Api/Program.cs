@@ -4,10 +4,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using FarmVendor.Api.Services; //Register the service
+using FarmVendor.Api.Services;
 using System.Text;
 using FarmVendor.Api.Hubs;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,20 +55,20 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS (React)
+// CORS (React + SignalR)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp", policy =>
         policy.WithOrigins("http://localhost:5173")
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              .AllowCredentials());
 });
 
-//register services
+// register services
 builder.Services.AddScoped<DemandForecastService>();
 builder.Services.AddScoped<DispatchOptimizationService>();
 builder.Services.AddScoped<RelationshipScoreService>();
-builder.Services.AddScoped<DemandForecastService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddSignalR();
 
@@ -83,14 +82,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection(); // keep OFF if you're using http backend
+// app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.MapHub<ChatHub>("/hubs/chat");
+
 // seed
 await SeedData.InitializeAsync(app.Services);
 

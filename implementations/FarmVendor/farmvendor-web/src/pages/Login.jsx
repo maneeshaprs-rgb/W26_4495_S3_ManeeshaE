@@ -127,22 +127,7 @@ export default function Login() {
               {loading ? "Signing in..." : "Login"}
             </button>
 
-            <div className="auth-extra">
-              <button
-                type="button"
-                className="auth-btn secondary"
-                onClick={() => navigate("/farmer")}
-              >
-                Go to Farmer Dashboard
-              </button>
-              <button
-                type="button"
-                className="auth-btn secondary"
-                onClick={() => navigate("/vendor")}
-              >
-                Go to Vendor Dashboard
-              </button>
-            </div>
+            
           </form>
 
           <div className="auth-footer">

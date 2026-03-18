@@ -81,7 +81,8 @@ public class AuthController : ControllerBase
         {
             token = new JwtSecurityTokenHandler().WriteToken(token),
             role = roles.FirstOrDefault(),
-            displayName = user.DisplayName
+            displayName = user.DisplayName,
+            userId = user.Id
         });
     }
 }
