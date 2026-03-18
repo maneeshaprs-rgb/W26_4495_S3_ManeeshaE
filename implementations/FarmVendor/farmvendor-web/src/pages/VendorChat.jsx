@@ -2,13 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 import ChatBox from "../assets/components/ChatBox";
-import { createConversation, getMyConversations } from "../assets/chatApi";
+import {
+  createConversation,
+  getMyConversations,
+  getChatUsers,
+} from "../assets/chatApi";
 
 export default function VendorChat() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const displayName = localStorage.getItem("displayName") || "Vendor";
-  const currentUserId = localStorage.getItem("userId") || localStorage.getItem("sub") || "";
+  const currentUserId = localStorage.getItem("userId") || "";
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -17,10 +21,9 @@ export default function VendorChat() {
   const [conversations, setConversations] = useState([]);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
 
-  const [createForm, setCreateForm] = useState({
-    farmerId: "",
-    vendorId: currentUserId,
-  });
+  const [farmers, setFarmers] = useState([]);
+  const [farmerSearch, setFarmerSearch] = useState("");
+  const [selectedFarmerId, setSelectedFarmerId] = useState("");
 
   const logout = () => {
     localStorage.clear();
@@ -28,16 +31,17 @@ export default function VendorChat() {
   };
 
   const loadConversations = async () => {
-    try {
-      const data = await getMyConversations(token);
-      setConversations(data);
+    const data = await getMyConversations(token);
+    setConversations(data);
 
-      if (data.length > 0 && !selectedConversationId) {
-        setSelectedConversationId(data[0].conversationId);
-      }
-    } catch (e) {
-      setError(e?.message || "Failed to load conversations");
+    if (data.length > 0 && !selectedConversationId) {
+      setSelectedConversationId(data[0].conversationId);
     }
+  };
+
+  const loadFarmers = async (search = "") => {
+    const data = await getChatUsers("Farmer", token, search);
+    setFarmers(data);
   };
 
   const handleCreateConversation = async (e) => {
@@ -45,27 +49,20 @@ export default function VendorChat() {
     setError("");
     setSuccess("");
 
-    if (!createForm.farmerId.trim()) {
-      setError("Farmer ID is required.");
+    if (!selectedFarmerId) {
+      setError("Please select a farmer.");
       return;
     }
 
     try {
-      const payload = {
-        farmerId: createForm.farmerId.trim(),
-        vendorId: currentUserId,
-      };
+      const result = await createConversation(
+        { farmerId: selectedFarmerId },
+        token
+      );
 
-      const result = await createConversation(payload, token);
       setSuccess("Conversation opened successfully.");
       setSelectedConversationId(result.conversationId);
-
       await loadConversations();
-
-      setCreateForm((prev) => ({
-        ...prev,
-        farmerId: "",
-      }));
     } catch (e) {
       setError(e?.message || "Failed to create conversation");
     }
@@ -78,10 +75,12 @@ export default function VendorChat() {
     }
 
     const run = async () => {
-      setLoading(true);
-      setError("");
       try {
+        setLoading(true);
         await loadConversations();
+        await loadFarmers();
+      } catch (e) {
+        setError(e?.message || "Failed to load chat");
       } finally {
         setLoading(false);
       }
@@ -90,6 +89,14 @@ export default function VendorChat() {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, navigate]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadFarmers(farmerSearch).catch(() => {});
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [farmerSearch]);
 
   return (
     <div className="dashboard-page">
@@ -104,19 +111,34 @@ export default function VendorChat() {
           </div>
 
           <nav className="sidebar-nav">
-            <div className="sidebar-link" onClick={() => navigate("/vendor/dashboard")}>
+            <div
+              className="sidebar-link"
+              onClick={() => navigate("/vendor/dashboard")}
+            >
               Dashboard
             </div>
-            <div className="sidebar-link" onClick={() => navigate("/vendor/stock")}>
+            <div
+              className="sidebar-link"
+              onClick={() => navigate("/vendor/stock")}
+            >
               Stock
             </div>
-            <div className="sidebar-link" onClick={() => navigate("/vendor/requests")}>
+            <div
+              className="sidebar-link"
+              onClick={() => navigate("/vendor/requests")}
+            >
               Requests
             </div>
-            <div className="sidebar-link" onClick={() => navigate("/vendor/incoming")}>
+            <div
+              className="sidebar-link"
+              onClick={() => navigate("/vendor/incoming")}
+            >
               Incoming
             </div>
-            <div className="sidebar-link" onClick={() => navigate("/vendor/analytics")}>
+            <div
+              className="sidebar-link"
+              onClick={() => navigate("/vendor/analytics")}
+            >
               Analytics
             </div>
             <div className="sidebar-link active">Chat</div>
@@ -152,19 +174,39 @@ export default function VendorChat() {
                 </div>
 
                 <div className="card-body">
-                  <form onSubmit={handleCreateConversation} className="modal-body" style={{ padding: 0 }}>
+                  <form
+                    onSubmit={handleCreateConversation}
+                    className="modal-body"
+                    style={{ padding: 0 }}
+                  >
                     <label className="field">
-                      <span>Farmer ID</span>
+                      <span>Search Farmer</span>
                       <input
-                        value={createForm.farmerId}
-                        onChange={(e) =>
-                          setCreateForm((prev) => ({ ...prev, farmerId: e.target.value }))
-                        }
-                        placeholder="Enter farmer user ID"
+                        value={farmerSearch}
+                        onChange={(e) => setFarmerSearch(e.target.value)}
+                        placeholder="Search by name or email"
                       />
                     </label>
 
-                    <div className="modal-actions" style={{ justifyContent: "flex-start" }}>
+                    <label className="field">
+                      <span>Select Farmer</span>
+                      <select
+                        value={selectedFarmerId}
+                        onChange={(e) => setSelectedFarmerId(e.target.value)}
+                      >
+                        <option value="">-- Select Farmer --</option>
+                        {farmers.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.displayName} ({f.email})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div
+                      className="modal-actions"
+                      style={{ justifyContent: "flex-start" }}
+                    >
                       <button type="submit" className="btn btn-primary">
                         Open Chat
                       </button>
@@ -194,10 +236,20 @@ export default function VendorChat() {
                                 ? "2px solid #2f855a"
                                 : undefined,
                           }}
-                          onClick={() => setSelectedConversationId(c.conversationId)}
+                          onClick={() =>
+                            setSelectedConversationId(c.conversationId)
+                          }
                         >
-                          <div><b>Conversation #{c.conversationId}</b></div>
-                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+                          <div>
+                            <b>Conversation #{c.conversationId}</b>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#6b7280",
+                              marginTop: 4,
+                            }}
+                          >
                             Farmer: {c.farmerId}
                           </div>
                         </button>
@@ -217,7 +269,9 @@ export default function VendorChat() {
                 />
               ) : (
                 <div className="card">
-                  <div className="card-body">Select or create a conversation to start chatting.</div>
+                  <div className="card-body">
+                    Select or create a conversation to start chatting.
+                  </div>
                 </div>
               )}
             </section>

@@ -38,3 +38,21 @@ export async function getConversationMessages(conversationId, token) {
   if (!res.ok) throw new Error(text || "Failed to load messages");
   return JSON.parse(text);
 }
+
+export async function getChatUsers(role, token, search = "") {
+  const url = new URL(`${API_BASE}/api/chat/users`);
+  url.searchParams.append("role", role);
+  if (search.trim()) {
+    url.searchParams.append("search", search.trim());
+  }
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Failed to load users");
+  return JSON.parse(text);
+}
