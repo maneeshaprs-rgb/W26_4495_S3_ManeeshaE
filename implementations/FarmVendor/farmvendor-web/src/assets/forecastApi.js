@@ -11,17 +11,17 @@ export async function generateForecasts(payload, token) {
   });
 
   const text = await res.text();
-  if (!res.ok) throw new Error(text || "Failed to generate forecasts");
+  if (!res.ok) throw new Error(text || "Failed to generate forecast");
   return JSON.parse(text);
 }
 
-export async function getForecasts({ forecastDate, modelName }, token) {
-  const params = new URLSearchParams();
+export async function getForecasts(params, token) {
+  const url = new URL(`${API_BASE}/api/forecasts`);
 
-  if (forecastDate) params.append("forecastDate", forecastDate);
-  if (modelName) params.append("modelName", modelName);
+  if (params?.forecastDate) url.searchParams.append("forecastDate", params.forecastDate);
+  if (params?.modelName) url.searchParams.append("modelName", params.modelName);
 
-  const res = await fetch(`${API_BASE}/api/forecasts?${params.toString()}`, {
+  const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -29,25 +29,6 @@ export async function getForecasts({ forecastDate, modelName }, token) {
 
   const text = await res.text();
   if (!res.ok) throw new Error(text || "Failed to load forecasts");
-  return JSON.parse(text);
-}
-
-export async function compareForecasts({ vendorId, productId, forecastDate, lookbackPeriods }, token) {
-  const params = new URLSearchParams({
-    vendorId,
-    productId: String(productId),
-    forecastDate,
-    lookbackPeriods: String(lookbackPeriods ?? 3),
-  });
-
-  const res = await fetch(`${API_BASE}/api/forecasts/compare?${params.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const text = await res.text();
-  if (!res.ok) throw new Error(text || "Failed to compare forecasts");
   return JSON.parse(text);
 }
 
@@ -63,15 +44,15 @@ export async function getForecastModels(token) {
   return JSON.parse(text);
 }
 
-export async function getForecastChartData({ vendorId, productId, forecastDate, modelName }, token) {
-  const params = new URLSearchParams({
-    vendorId,
-    productId: String(productId),
-    forecastDate,
-    modelName: modelName || "MLNET_SSA",
-  });
+export async function getForecastChartData(params, token) {
+  const url = new URL(`${API_BASE}/api/forecastcharts`);
 
-  const res = await fetch(`${API_BASE}/api/forecasts/chart?${params.toString()}`, {
+  if (params?.vendorId) url.searchParams.append("vendorId", params.vendorId);
+  if (params?.productId) url.searchParams.append("productId", params.productId);
+  if (params?.forecastDate) url.searchParams.append("forecastDate", params.forecastDate);
+  if (params?.modelName) url.searchParams.append("modelName", params.modelName);
+
+  const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -79,5 +60,35 @@ export async function getForecastChartData({ vendorId, productId, forecastDate, 
 
   const text = await res.text();
   if (!res.ok) throw new Error(text || "Failed to load chart data");
+  return JSON.parse(text);
+}
+
+export async function getForecastVendors(token, search = "") {
+  const url = new URL(`${API_BASE}/api/forecasts/vendors`);
+  if (search.trim()) url.searchParams.append("search", search.trim());
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Failed to load vendors");
+  return JSON.parse(text);
+}
+
+export async function getForecastProducts(token, search = "") {
+  const url = new URL(`${API_BASE}/api/forecasts/products`);
+  if (search.trim()) url.searchParams.append("search", search.trim());
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Failed to load products");
   return JSON.parse(text);
 }

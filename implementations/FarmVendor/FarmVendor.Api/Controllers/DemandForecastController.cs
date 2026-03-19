@@ -22,7 +22,7 @@ public class DemandForecastController : ControllerBase
     }
 
     // POST: /api/forecasts/generate
-    [HttpPost("generate")]
+     [HttpPost("generate")]
     public async Task<IActionResult> GenerateForecasts([FromBody] GenerateForecastDto dto)
     {
         if (dto.ForecastDate == default)
@@ -72,42 +72,42 @@ public class DemandForecastController : ControllerBase
 
     // GET: /api/forecasts?forecastDate=2026-03-10&modelName=MLNET_SSA
     [HttpGet]
-public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
-    [FromQuery] DateTime? forecastDate,
-    [FromQuery] string? modelName)
-{
-    var query = _db.DemandForecast
-        .AsNoTracking()
-        .Include(f => f.Product)
-        .AsQueryable();
-
-    if (forecastDate.HasValue)
-        query = query.Where(f => f.ForecastDate.Date == forecastDate.Value.Date);
-
-    if (!string.IsNullOrWhiteSpace(modelName))
+    public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
+        [FromQuery] DateTime? forecastDate,
+        [FromQuery] string? modelName)
     {
-        var normalizedModelName = modelName.Trim().ToLower();
-        query = query.Where(f => f.ModelName.ToLower() == normalizedModelName);
-    }
+        var query = _db.DemandForecast
+            .AsNoTracking()
+            .Include(f => f.Product)
+            .AsQueryable();
 
-    var rows = await query
-        .OrderByDescending(f => f.CreatedAt)
-        .Select(f => new DemandForecastRowDto
+        if (forecastDate.HasValue)
+            query = query.Where(f => f.ForecastDate.Date == forecastDate.Value.Date);
+
+        if (!string.IsNullOrWhiteSpace(modelName))
         {
-            DemandForecastId = f.DemandForecastId,
-            VendorId = f.VendorId,
-            ProductId = f.ProductId,
-            ProductName = f.Product.Name,
-            ForecastDate = f.ForecastDate,
-            ForecastQty = f.ForecastQty,
-            ModelName = f.ModelName,
-            LookbackPeriods = f.LookbackPeriods,
-            CreatedAt = f.CreatedAt
-        })
-        .ToListAsync();
+            var normalizedModelName = modelName.Trim().ToLower();
+            query = query.Where(f => f.ModelName.ToLower() == normalizedModelName);
+        }
 
-    return Ok(rows);
-}
+        var rows = await query
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => new DemandForecastRowDto
+            {
+                DemandForecastId = f.DemandForecastId,
+                VendorId = f.VendorId,
+                ProductId = f.ProductId,
+                ProductName = f.Product.Name,
+                ForecastDate = f.ForecastDate,
+                ForecastQty = f.ForecastQty,
+                ModelName = f.ModelName,
+                LookbackPeriods = f.LookbackPeriods,
+                CreatedAt = f.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(rows);
+    }
 
     // GET: /api/forecasts/compare?vendorId=abc&productId=1&forecastDate=2026-03-10
     [HttpGet("compare")]
@@ -134,54 +134,116 @@ public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
 
     //check what model names actually exist in the table
     [HttpGet("models")]
-public async Task<IActionResult> GetModelNames()
-{
-    var models = await _db.DemandForecast
-        .AsNoTracking()
-        .Select(f => f.ModelName)
-        .Distinct()
-        .ToListAsync();
+    public async Task<IActionResult> GetModelNames()
+    {
+        var models = await _db.DemandForecast
+            .AsNoTracking()
+            .Select(f => f.ModelName)
+            .Distinct()
+            .ToListAsync();
 
-    return Ok(models);
-}
+        return Ok(models);
+    }
 
 
-[HttpGet("debug-history")]
-public async Task<IActionResult> DebugHistory()
-{
-    var data = await _db.DemandRequest
-        .AsNoTracking()
-        .GroupBy(r => new { r.VendorId, r.ProductId })
-        .Select(g => new
+    [HttpGet("debug-history")]
+    public async Task<IActionResult> DebugHistory()
+    {
+        var data = await _db.DemandRequest
+            .AsNoTracking()
+            .GroupBy(r => new { r.VendorId, r.ProductId })
+            .Select(g => new
+            {
+                g.Key.VendorId,
+                g.Key.ProductId,
+                Count = g.Count(),
+                MinDate = g.Min(x => x.CreatedAt),
+                MaxDate = g.Max(x => x.CreatedAt)
+            })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+
+        return Ok(data);
+    }
+    //end point for charts
+    [HttpGet("chart")]
+    public async Task<IActionResult> GetForecastChartData(
+        [FromQuery] string vendorId,
+        [FromQuery] int productId,
+        [FromQuery] DateTime forecastDate,
+        [FromQuery] string modelName = "MLNET_SSA")
+    {
+        if (string.IsNullOrWhiteSpace(vendorId))
+            return BadRequest("VendorId is required.");
+
+        var data = await _forecastService.GetForecastChartDataAsync(
+            vendorId,
+            productId,
+            forecastDate,
+            modelName);
+
+        return Ok(data);
+    }
+
+    //end point for forecasting =>selecting vendors via dropdown
+    [HttpGet("vendors")]
+    public async Task<IActionResult> GetVendors([FromQuery] string? search = null)
+    {
+        var query = _db.Users.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            g.Key.VendorId,
-            g.Key.ProductId,
-            Count = g.Count(),
-            MinDate = g.Min(x => x.CreatedAt),
-            MaxDate = g.Max(x => x.CreatedAt)
-        })
-        .OrderByDescending(x => x.Count)
-        .ToListAsync();
+            var term = search.Trim().ToLower();
+            query = query.Where(u =>
+                (u.DisplayName != null && u.DisplayName.ToLower().Contains(term)) ||
+                (u.Email != null && u.Email.ToLower().Contains(term)));
+        }
 
-    return Ok(data);
-}
-//end point for charts
-[HttpGet("chart")]
-public async Task<IActionResult> GetForecastChartData(
-    [FromQuery] string vendorId,
-    [FromQuery] int productId,
-    [FromQuery] DateTime forecastDate,
-    [FromQuery] string modelName = "MLNET_SSA")
-{
-    if (string.IsNullOrWhiteSpace(vendorId))
-        return BadRequest("VendorId is required.");
+        var vendors = await query
+            .Join(_db.UserRoles,
+                u => u.Id,
+                ur => ur.UserId,
+                (u, ur) => new { u, ur })
+            .Join(_db.Roles,
+                x => x.ur.RoleId,
+                r => r.Id,
+                (x, r) => new { x.u, RoleName = r.Name })
+            .Where(x => x.RoleName == "Vendor")
+            .Select(x => new
+            {
+                id = x.u.Id,
+                displayName = x.u.DisplayName,
+                email = x.u.Email
+            })
+            .Distinct()
+            .OrderBy(x => x.displayName)
+            .ToListAsync();
 
-    var data = await _forecastService.GetForecastChartDataAsync(
-        vendorId,
-        productId,
-        forecastDate,
-        modelName);
+        return Ok(vendors);
+    }
 
-    return Ok(data);
-}
+    //end point for forecasting =>selecting products via dropdown
+    [HttpGet("products")]
+    public async Task<IActionResult> GetProducts([FromQuery] string? search = null)
+    {
+        var query = _db.Product.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(term));
+        }
+
+        var products = await query
+            .OrderBy(p => p.Name)
+            .Select(p => new
+            {
+                productId = p.ProductId,
+                name = p.Name,
+                defaultUnit = p.DefaultUnit
+            })
+            .ToListAsync();
+
+        return Ok(products);
+    }
 }

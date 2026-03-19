@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 import {
@@ -6,6 +6,8 @@ import {
   getForecasts,
   getForecastModels,
   getForecastChartData,
+  getForecastVendors,
+  getForecastProducts,
 } from "../assets/forecastApi";
 import ForecastLineChart from "../assets/components/ForecastLineChart";
 
@@ -23,12 +25,19 @@ export default function FarmerAnalytics() {
   const [models, setModels] = useState([]);
   const [chartData, setChartData] = useState([]);
 
+  const [vendors, setVendors] = useState([]);
+  const [products, setProducts] = useState([]);
+
+  const [vendorSearch, setVendorSearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+
   const [form, setForm] = useState({
     forecastDate: new Date().toISOString().slice(0, 10),
     modelName: "MovingAverage",
     lookbackPeriods: 3,
     horizon: 7,
     granularity: "Daily",
+    vendorId: "",
   });
 
   const [chartForm, setChartForm] = useState({
@@ -36,12 +45,6 @@ export default function FarmerAnalytics() {
     productId: "",
     forecastDate: new Date().toISOString().slice(0, 10),
   });
-
-  const authHeaders = useMemo(() => {
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  }, [token]);
 
   const logout = () => {
     localStorage.clear();
@@ -76,6 +79,24 @@ export default function FarmerAnalytics() {
     }
   };
 
+  const loadVendors = async (search = "") => {
+    try {
+      const data = await getForecastVendors(token, search);
+      setVendors(data);
+    } catch {
+      setVendors([]);
+    }
+  };
+
+  const loadProducts = async (search = "") => {
+    try {
+      const data = await getForecastProducts(token, search);
+      setProducts(data);
+    } catch {
+      setProducts([]);
+    }
+  };
+
   const handleGenerate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -89,12 +110,14 @@ export default function FarmerAnalytics() {
               forecastDate: form.forecastDate,
               modelName: form.modelName,
               lookbackPeriods: Number(form.lookbackPeriods),
+              vendorId: form.vendorId || null,
             }
           : {
               forecastDate: form.forecastDate,
               modelName: form.modelName,
               horizon: Number(form.horizon),
               granularity: form.granularity,
+              vendorId: form.vendorId || null,
             };
 
       const result = await generateForecasts(payload, token);
@@ -114,6 +137,11 @@ export default function FarmerAnalytics() {
   const loadChart = async () => {
     setError("");
     setChartData([]);
+
+    if (!chartForm.vendorId || !chartForm.productId) {
+      setError("Please select vendor and product.");
+      return;
+    }
 
     try {
       const data = await getForecastChartData(
@@ -140,11 +168,27 @@ export default function FarmerAnalytics() {
     const run = async () => {
       await loadModels();
       await loadForecastRows();
+      await loadVendors();
+      await loadProducts();
     };
 
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, navigate]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadVendors(vendorSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [vendorSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadProducts(productSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [productSearch]);
 
   return (
     <div className="dashboard-page">
@@ -213,6 +257,32 @@ export default function FarmerAnalytics() {
                           setForm((prev) => ({ ...prev, forecastDate: e.target.value }))
                         }
                       />
+                    </label>
+
+                    <label className="field">
+                      <span>Search Vendor</span>
+                      <input
+                        value={vendorSearch}
+                        onChange={(e) => setVendorSearch(e.target.value)}
+                        placeholder="Search vendor by name or email"
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Select Vendor</span>
+                      <select
+                        value={form.vendorId}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, vendorId: e.target.value }))
+                        }
+                      >
+                        <option value="">-- Select Vendor --</option>
+                        {vendors.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.displayName} ({v.email})
+                          </option>
+                        ))}
+                      </select>
                     </label>
 
                     <label className="field">
@@ -324,24 +394,55 @@ export default function FarmerAnalytics() {
                 <div className="card-body">
                   <div className="modal-body" style={{ padding: 0 }}>
                     <label className="field">
-                      <span>Vendor ID</span>
+                      <span>Search Vendor</span>
                       <input
-                        value={chartForm.vendorId}
-                        onChange={(e) =>
-                          setChartForm((prev) => ({ ...prev, vendorId: e.target.value }))
-                        }
+                        value={vendorSearch}
+                        onChange={(e) => setVendorSearch(e.target.value)}
+                        placeholder="Search vendor by name or email"
                       />
                     </label>
 
                     <label className="field">
-                      <span>Product ID</span>
+                      <span>Select Vendor</span>
+                      <select
+                        value={chartForm.vendorId}
+                        onChange={(e) =>
+                          setChartForm((prev) => ({ ...prev, vendorId: e.target.value }))
+                        }
+                      >
+                        <option value="">-- Select Vendor --</option>
+                        {vendors.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.displayName} ({v.email})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="field">
+                      <span>Search Product</span>
                       <input
-                        type="number"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search product by name"
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Select Product</span>
+                      <select
                         value={chartForm.productId}
                         onChange={(e) =>
                           setChartForm((prev) => ({ ...prev, productId: e.target.value }))
                         }
-                      />
+                      >
+                        <option value="">-- Select Product --</option>
+                        {products.map((p) => (
+                          <option key={p.productId} value={p.productId}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
                     </label>
 
                     <label className="field">
