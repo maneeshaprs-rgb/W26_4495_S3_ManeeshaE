@@ -10,6 +10,7 @@ import {
   getForecastProducts,
 } from "../assets/forecastApi";
 import ForecastLineChart from "../assets/components/ForecastLineChart";
+import FarmerSidebar from "../assets/components/FarmerSidebar";
 
 export default function FarmerAnalytics() {
   const navigate = useNavigate();
@@ -193,34 +194,7 @@ export default function FarmerAnalytics() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-layout">
-        <aside className="sidebar">
-          <div className="sidebar-brand">
-            <div className="sidebar-logo">FV</div>
-            <div>
-              <div className="sidebar-title">FarmVendor</div>
-              <div className="sidebar-subtitle">Farmer Panel</div>
-            </div>
-          </div>
-
-          <nav className="sidebar-nav">
-            <div className="sidebar-link" onClick={() => navigate("/farmer/dashboard")}>
-              Dashboard
-            </div>
-            <div className="sidebar-link" onClick={() => navigate("/farmer/products")}>
-              Products
-            </div>
-            <div className="sidebar-link" onClick={() => navigate("/farmer/requests")}>
-              Requests
-            </div>
-            <div className="sidebar-link" onClick={() => navigate("/farmer/dispatch")}>
-              Dispatch
-            </div>
-            <div className="sidebar-link active">Analytics</div>
-            <div className="sidebar-link" onClick={logout}>
-              Logout
-            </div>
-          </nav>
-        </aside>
+        <FarmerSidebar />
 
         <main className="main">
           <div className="main-inner">

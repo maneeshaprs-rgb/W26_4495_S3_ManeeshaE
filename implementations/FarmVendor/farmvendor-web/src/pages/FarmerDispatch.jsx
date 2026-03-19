@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
+import FarmerSidebar from "../assets/components/FarmerSidebar";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -99,23 +100,7 @@ export default function FarmerDispatch() {
     <div className="dashboard-page">
       <div className="dashboard-layout">
         {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-brand">
-            <div className="sidebar-logo">FV</div>
-            <div>
-              <div className="sidebar-title">FarmVendor</div>
-              <div className="sidebar-subtitle">Farmer Panel</div>
-            </div>
-          </div>
-
-          <nav className="sidebar-nav">
-            <div className="sidebar-link" onClick={() => navigate("/farmer")}>Dashboard</div>
-            <div className="sidebar-link" onClick={() => navigate("/farmer/products")}>Products</div>
-            <div className="sidebar-link" onClick={() => navigate("/farmer/requests")}>Requests</div>
-            <div className="sidebar-link active" onClick={() => navigate("/farmer/dispatch")}>Dispatch</div>
-            <div className="sidebar-link" onClick={logout}>Logout</div>
-          </nav>
-        </aside>
+        <FarmerSidebar />
 
         {/* Main */}
         <main className="main">

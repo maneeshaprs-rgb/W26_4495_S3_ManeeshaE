@@ -24,8 +24,8 @@ export default function FarmerSidebar() {
 
       <nav className="sidebar-nav">
         <div
-          className={`sidebar-link ${isActive("/farmer/dashboard") ? "active" : ""}`}
-          onClick={() => navigate("/farmer/dashboard")}
+          className={`sidebar-link ${isActive("/farmer") ? "active" : ""}`}
+          onClick={() => navigate("/farmer")}
         >
           Dashboard
         </div>
@@ -59,8 +59,8 @@ export default function FarmerSidebar() {
         </div>
 
         <div
-          className={`sidebar-link ${isActive("/farmer/forecast") ? "active" : ""}`}
-          onClick={() => navigate("/farmer/forecast")}
+          className={`sidebar-link ${isActive("/farmer/forecasts") ? "active" : ""}`}
+          onClick={() => navigate("/farmer/forecasts")}
         >
           Forecast
         </div>

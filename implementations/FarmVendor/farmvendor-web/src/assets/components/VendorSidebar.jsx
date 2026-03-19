@@ -24,8 +24,8 @@ export default function VendorSidebar() {
 
       <nav className="sidebar-nav">
         <div
-          className={`sidebar-link ${isActive("/vendor/dashboard") ? "active" : ""}`}
-          onClick={() => navigate("/vendor/dashboard")}
+          className={`sidebar-link ${isActive("/vendor") ? "active" : ""}`}
+          onClick={() => navigate("/vendor")}
         >
           Dashboard
         </div>
@@ -59,8 +59,8 @@ export default function VendorSidebar() {
         </div>
 
         <div
-          className={`sidebar-link ${isActive("/vendor/forecast") ? "active" : ""}`}
-          onClick={() => navigate("/vendor/forecast")}
+          className={`sidebar-link ${isActive("/vendor/forecasts") ? "active" : ""}`}
+          onClick={() => navigate("/vendor/forecasts")}
         >
           Forecast
         </div>

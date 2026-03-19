@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
-import FarmerSidebar from "../components/FarmerSidebar";
+import FarmerSidebar from "../assets/components/FarmerSidebar";
 
 const API_BASE = import.meta.env.VITE_API_URL; // e.g., http://localhost:5136
 
