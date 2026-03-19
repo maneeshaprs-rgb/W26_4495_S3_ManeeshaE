@@ -92,3 +92,24 @@ export async function getForecastProducts(token, search = "") {
   if (!res.ok) throw new Error(text || "Failed to load products");
   return JSON.parse(text);
 }
+
+export async function compareForecasts(params, token) {
+  const url = new URL(`${API_BASE}/api/forecasts/compare`);
+
+  if (params?.vendorId) url.searchParams.append("vendorId", params.vendorId);
+  if (params?.productId) url.searchParams.append("productId", params.productId);
+  if (params?.forecastDate) url.searchParams.append("forecastDate", params.forecastDate);
+  if (params?.lookbackPeriods) {
+    url.searchParams.append("lookbackPeriods", params.lookbackPeriods);
+  }
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Failed to compare forecasts");
+  return JSON.parse(text);
+}
