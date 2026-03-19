@@ -45,7 +45,7 @@ export async function getForecastModels(token) {
 }
 
 export async function getForecastChartData(params, token) {
-  const url = new URL(`${API_BASE}/api/forecastcharts`);
+  const url = new URL(`${API_BASE}/api/forecast/chart`);
 
   if (params?.vendorId) url.searchParams.append("vendorId", params.vendorId);
   if (params?.productId) url.searchParams.append("productId", params.productId);
