@@ -71,6 +71,7 @@ builder.Services.AddScoped<DispatchOptimizationService>();
 builder.Services.AddScoped<RelationshipScoreService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddSignalR();
+builder.Services.AddScoped<FarmerRecommendationService>();
 
 var app = builder.Build();
 

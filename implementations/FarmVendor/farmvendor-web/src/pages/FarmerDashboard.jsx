@@ -1,10 +1,10 @@
-// src/pages/FarmerDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 import FarmerSidebar from "../assets/components/FarmerSidebar";
+import { getRecommendedVendors } from "../assets/forecastApi";
 
-const API_BASE = import.meta.env.VITE_API_URL; // e.g., http://localhost:5136
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
@@ -19,11 +19,13 @@ export default function FarmerDashboard() {
 
   const [stock, setStock] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [recommendedVendors, setRecommendedVendors] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [error, setError] = useState("");
 
-  // Add Product Lot (modal)
+  // Add Product Lot modal
   const [showAddLot, setShowAddLot] = useState(false);
   const [products, setProducts] = useState([]);
   const [lotForm, setLotForm] = useState({
@@ -34,7 +36,7 @@ export default function FarmerDashboard() {
   });
   const [savingLot, setSavingLot] = useState(false);
 
-  // Create Dispatch (modal)
+  // Create Dispatch modal
   const [showCreateDispatch, setShowCreateDispatch] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
     demandRequestId: "",
@@ -93,6 +95,21 @@ export default function FarmerDashboard() {
     setRequests(JSON.parse(reqText));
   };
 
+  const loadRecommendedVendors = async () => {
+    setLoadingRecommendations(true);
+    try {
+      const data = await getRecommendedVendors(
+        new Date().toISOString().slice(0, 10),
+        token
+      );
+      setRecommendedVendors(data);
+    } catch (e) {
+      setError(e?.message || "Failed to load recommended vendors");
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+
   // ---------- Add Lot ----------
   const openAddLot = async () => {
     setError("");
@@ -112,8 +129,9 @@ export default function FarmerDashboard() {
     setError("");
 
     if (!lotForm.productId) return setError("Please select a product.");
-    if (!lotForm.quantityAvailable || Number(lotForm.quantityAvailable) <= 0)
+    if (!lotForm.quantityAvailable || Number(lotForm.quantityAvailable) <= 0) {
       return setError("Quantity must be greater than 0.");
+    }
 
     setSavingLot(true);
     try {
@@ -121,7 +139,9 @@ export default function FarmerDashboard() {
         productId: Number(lotForm.productId),
         quantityAvailable: Number(lotForm.quantityAvailable),
         unit: lotForm.unit?.trim() ? lotForm.unit.trim() : null,
-        expiryDate: lotForm.expiryDate ? new Date(lotForm.expiryDate).toISOString() : null,
+        expiryDate: lotForm.expiryDate
+          ? new Date(lotForm.expiryDate).toISOString()
+          : null,
       };
 
       const res = await fetch(`${API_BASE}/api/InventoryLots`, {
@@ -134,8 +154,15 @@ export default function FarmerDashboard() {
       if (!res.ok) throw new Error(text || "Failed to create inventory lot.");
 
       setShowAddLot(false);
-      setLotForm({ productId: "", quantityAvailable: "", unit: "", expiryDate: "" });
+      setLotForm({
+        productId: "",
+        quantityAvailable: "",
+        unit: "",
+        expiryDate: "",
+      });
+
       await loadDashboard();
+      await loadRecommendedVendors();
     } catch (err) {
       setError(err?.message || "Failed to save inventory lot");
     } finally {
@@ -147,7 +174,6 @@ export default function FarmerDashboard() {
   const openCreateDispatch = async () => {
     setError("");
 
-    // Ensure latest requests are loaded before opening modal
     try {
       if (requests.length === 0) {
         await loadDashboard();
@@ -156,7 +182,11 @@ export default function FarmerDashboard() {
       setError(e?.message || "Failed to load requests");
     }
 
-    setDispatchForm({ demandRequestId: "", quantityDispatched: "", dispatchDate: "" });
+    setDispatchForm({
+      demandRequestId: "",
+      quantityDispatched: "",
+      dispatchDate: "",
+    });
     setShowCreateDispatch(true);
   };
 
@@ -165,8 +195,9 @@ export default function FarmerDashboard() {
     setError("");
 
     if (!dispatchForm.demandRequestId) return setError("Please select a request.");
-    if (!dispatchForm.quantityDispatched || Number(dispatchForm.quantityDispatched) <= 0)
+    if (!dispatchForm.quantityDispatched || Number(dispatchForm.quantityDispatched) <= 0) {
       return setError("Dispatch quantity must be greater than 0.");
+    }
 
     setSavingDispatch(true);
     try {
@@ -188,7 +219,9 @@ export default function FarmerDashboard() {
       if (!res.ok) throw new Error(text || "Failed to create dispatch.");
 
       setShowCreateDispatch(false);
+
       await loadDashboard();
+      await loadRecommendedVendors();
     } catch (err) {
       setError(err?.message || "Failed to create dispatch.");
     } finally {
@@ -208,6 +241,7 @@ export default function FarmerDashboard() {
       try {
         await loadDashboard();
         await loadProducts();
+        await loadRecommendedVendors();
       } catch (e) {
         setError(e?.message || "Something went wrong loading dashboard");
       } finally {
@@ -222,16 +256,14 @@ export default function FarmerDashboard() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-layout">
-        {/* Sidebar */}
         <FarmerSidebar />
 
-        {/* Main */}
         <main className="main">
           <div className="main-inner">
             <div className="topbar">
               <div>
                 <h1>Welcome, {displayName}</h1>
-                <div className="sub">Overview of your stock and vendor requests</div>
+                <div className="sub">Overview of your stock, requests, and vendor recommendations</div>
               </div>
               <div className="topbar-right">
                 <span className="pill">Role: Farmer</span>
@@ -277,13 +309,14 @@ export default function FarmerDashboard() {
               </div>
             </section>
 
-            {/* Sections */}
             <section className="grid-sections">
               {/* Current Stock */}
               <div className="card">
                 <div className="card-header">
                   <h2>Current Stock</h2>
-                  <button className="btn btn-secondary">View All</button>
+                  <button className="btn btn-secondary" onClick={loadDashboard}>
+                    Refresh
+                  </button>
                 </div>
 
                 <div className="card-body">
@@ -310,7 +343,11 @@ export default function FarmerDashboard() {
                               <td>
                                 {row.qty} {row.unit}
                               </td>
-                              <td>{row.expiry ? new Date(row.expiry).toISOString().slice(0, 10) : "-"}</td>
+                              <td>
+                                {row.expiry
+                                  ? new Date(row.expiry).toISOString().slice(0, 10)
+                                  : "-"}
+                              </td>
                               <td>
                                 <span className={badge.cls}>{badge.text}</span>
                               </td>
@@ -327,7 +364,9 @@ export default function FarmerDashboard() {
               <div className="card">
                 <div className="card-header">
                   <h2>Upcoming Vendor Requests</h2>
-                  <button className="btn btn-secondary">View All</button>
+                  <button className="btn btn-secondary" onClick={loadDashboard}>
+                    Refresh
+                  </button>
                 </div>
 
                 <div className="card-body">
@@ -370,6 +409,55 @@ export default function FarmerDashboard() {
                   <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
                     Requests loaded: <b>{requests.length}</b>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Top Vendors for Dispatching */}
+            <section style={{ marginTop: 14 }}>
+              <div className="card">
+                <div className="card-header">
+                  <h2>Top Vendors for Dispatching</h2>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={loadRecommendedVendors}
+                    disabled={loadingRecommendations}
+                  >
+                    {loadingRecommendations ? "Loading..." : "Refresh"}
+                  </button>
+                </div>
+
+                <div className="card-body">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Vendor</th>
+                        <th>Products</th>
+                        <th>Match Qty</th>
+                        <th>Distance (km)</th>
+                        <th>Relationship</th>
+                        <th>Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recommendedVendors.length === 0 ? (
+                        <tr>
+                          <td colSpan="6">No recommended vendors found.</td>
+                        </tr>
+                      ) : (
+                        recommendedVendors.map((v) => (
+                          <tr key={v.vendorId}>
+                            <td>{v.vendorName}</td>
+                            <td>{v.matchedProducts?.join(", ")}</td>
+                            <td>{v.matchableQuantity}</td>
+                            <td>{v.distanceKm}</td>
+                            <td>{v.relationshipScore}</td>
+                            <td>{v.finalScore}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </section>
@@ -419,7 +507,9 @@ export default function FarmerDashboard() {
                     type="number"
                     step="0.01"
                     value={lotForm.quantityAvailable}
-                    onChange={(e) => setLotForm((prev) => ({ ...prev, quantityAvailable: e.target.value }))}
+                    onChange={(e) =>
+                      setLotForm((prev) => ({ ...prev, quantityAvailable: e.target.value }))
+                    }
                     placeholder="e.g., 50"
                   />
                 </label>
@@ -428,7 +518,9 @@ export default function FarmerDashboard() {
                   <span>Unit</span>
                   <input
                     value={lotForm.unit}
-                    onChange={(e) => setLotForm((prev) => ({ ...prev, unit: e.target.value }))}
+                    onChange={(e) =>
+                      setLotForm((prev) => ({ ...prev, unit: e.target.value }))
+                    }
                     placeholder="kg / L / dozen"
                   />
                 </label>
@@ -439,12 +531,18 @@ export default function FarmerDashboard() {
                 <input
                   type="date"
                   value={lotForm.expiryDate}
-                  onChange={(e) => setLotForm((prev) => ({ ...prev, expiryDate: e.target.value }))}
+                  onChange={(e) =>
+                    setLotForm((prev) => ({ ...prev, expiryDate: e.target.value }))
+                  }
                 />
               </label>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddLot(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowAddLot(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={savingLot}>
@@ -473,24 +571,25 @@ export default function FarmerDashboard() {
                 <select
                   value={dispatchForm.demandRequestId}
                   onChange={(e) => {
-  const id = e.target.value;
-  const req = requests.find((x) => String(x.demandRequestId) === String(id));
+                    const id = e.target.value;
+                    const req = requests.find(
+                      (x) => String(x.demandRequestId) === String(id)
+                    );
 
-  setDispatchForm((prev) => ({
-    ...prev,
-    demandRequestId: id,
-    quantityDispatched: req ? String(req.qty) : prev.quantityDispatched,
-  }));
-}}
+                    setDispatchForm((prev) => ({
+                      ...prev,
+                      demandRequestId: id,
+                      quantityDispatched: req ? String(req.qty) : prev.quantityDispatched,
+                    }));
+                  }}
                 >
                   <option value="">-- Select --</option>
-                  
-{requests.map((r) => (
-  <option key={r.demandRequestId} value={r.demandRequestId}>
-    #{r.demandRequestId} — {r.product} ({r.qty} {r.unit}) Needed:{" "}
-    {new Date(r.neededBy).toISOString().slice(0, 10)}
-  </option>
-))}
+                  {requests.map((r) => (
+                    <option key={r.demandRequestId} value={r.demandRequestId}>
+                      #{r.demandRequestId} — {r.product} ({r.qty} {r.unit}) Needed:{" "}
+                      {new Date(r.neededBy).toISOString().slice(0, 10)}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -500,7 +599,12 @@ export default function FarmerDashboard() {
                   type="number"
                   step="0.01"
                   value={dispatchForm.quantityDispatched}
-                  onChange={(e) => setDispatchForm((prev) => ({ ...prev, quantityDispatched: e.target.value }))}
+                  onChange={(e) =>
+                    setDispatchForm((prev) => ({
+                      ...prev,
+                      quantityDispatched: e.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -509,12 +613,21 @@ export default function FarmerDashboard() {
                 <input
                   type="date"
                   value={dispatchForm.dispatchDate}
-                  onChange={(e) => setDispatchForm((prev) => ({ ...prev, dispatchDate: e.target.value }))}
+                  onChange={(e) =>
+                    setDispatchForm((prev) => ({
+                      ...prev,
+                      dispatchDate: e.target.value,
+                    }))
+                  }
                 />
               </label>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateDispatch(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowCreateDispatch(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={savingDispatch}>

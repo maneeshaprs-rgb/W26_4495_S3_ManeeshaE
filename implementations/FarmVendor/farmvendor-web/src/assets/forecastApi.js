@@ -45,7 +45,8 @@ export async function getForecastModels(token) {
 }
 
 export async function getForecastChartData(params, token) {
-  const url = new URL(`${API_BASE}/api/forecast/chart`);
+  //const url = new URL(`${API_BASE}/api/forecast/chart`);
+  const url = new URL(`${API_BASE}/api/forecasts/chart`);
 
   if (params?.vendorId) url.searchParams.append("vendorId", params.vendorId);
   if (params?.productId) url.searchParams.append("productId", params.productId);
@@ -111,5 +112,21 @@ export async function compareForecasts(params, token) {
 
   const text = await res.text();
   if (!res.ok) throw new Error(text || "Failed to compare forecasts");
+  return JSON.parse(text);
+}
+
+//get recommended vendors
+export async function getRecommendedVendors(forecastDate, token) {
+  const url = new URL(`${API_BASE}/api/farmer/recommended-vendors`);
+  if (forecastDate) url.searchParams.append("forecastDate", forecastDate);
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || "Failed to load recommended vendors");
   return JSON.parse(text);
 }
