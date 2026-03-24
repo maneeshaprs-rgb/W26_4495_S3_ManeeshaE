@@ -98,7 +98,6 @@ public class DemandForecastService
                 forecastStartDate,
                 granularity);
 
-            // Lowered from 10 to 5 so current dataset can work
             if (series.Count < 5)
             {
                 Console.WriteLine(
@@ -115,7 +114,6 @@ public class DemandForecastService
 
             try
             {
-                // Avoid asking for a horizon larger than the data can support
                 var safeHorizon = Math.Min(horizon, Math.Max(1, orderedValues.Count / 2));
 
                 mlResult = _mlEngine.TrainAndForecast(orderedValues, safeHorizon);
@@ -220,7 +218,6 @@ public class DemandForecastService
 
         decimal mlPrediction = 0;
 
-        // Lowered from 10 to 5
         if (dailySeries.Count >= 5)
         {
             try
@@ -256,7 +253,54 @@ public class DemandForecastService
     }
 
     // =========================================================
-    // 5) PRIVATE HELPER FOR DAILY / WEEKLY SERIES
+    // 5) CHART DATA
+    // =========================================================
+    public async Task<List<ForecastChartPointDto>> GetForecastChartDataAsync(
+        string vendorId,
+        int productId,
+        DateTime forecastDate,
+        string modelName = "MLNET_SSA")
+    {
+        var history = await _db.DemandRequest
+            .AsNoTracking()
+            .Where(r => r.VendorId == vendorId &&
+                        r.ProductId == productId &&
+                        r.CreatedAt < forecastDate)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(10)
+            .Select(r => new ForecastChartPointDto
+            {
+                Date = r.CreatedAt.ToString("yyyy-MM-dd"),
+                Quantity = r.QuantityRequested,
+                Series = "Historical"
+            })
+            .ToListAsync();
+
+        history = history
+            .OrderBy(x => x.Date)
+            .ToList();
+
+        var forecasts = await _db.DemandForecast
+            .AsNoTracking()
+            .Where(f => f.VendorId == vendorId &&
+                        f.ProductId == productId &&
+                        f.ModelName == modelName &&
+                        f.ForecastDate >= forecastDate.Date)
+            .OrderBy(f => f.ForecastDate)
+            .Take(10)
+            .Select(f => new ForecastChartPointDto
+            {
+                Date = f.ForecastDate.ToString("yyyy-MM-dd"),
+                Quantity = f.ForecastQty,
+                Series = "Forecast"
+            })
+            .ToListAsync();
+
+        return history.Concat(forecasts).ToList();
+    }
+
+    // =========================================================
+    // 6) PRIVATE HELPER FOR DAILY / WEEKLY SERIES
     // =========================================================
     private async Task<List<AggregatedDemandPoint>> LoadAggregatedDemandSeriesAsync(
         int productId,
@@ -311,42 +355,5 @@ public class DemandForecastService
     {
         public DateTime PeriodDate { get; set; }
         public decimal TotalQuantity { get; set; }
-    }
-
-    public async Task<List<ForecastChartPointDto>> GetForecastChartDataAsync(
-    string vendorId,
-    int productId,
-    DateTime forecastDate,
-    string modelName = "MLNET_SSA")
-    {
-        var history = await _db.DemandRequest
-            .AsNoTracking()
-            .Where(r => r.VendorId == vendorId &&
-                        r.ProductId == productId &&
-                        r.CreatedAt < forecastDate)
-            .OrderBy(r => r.CreatedAt)
-            .Select(r => new ForecastChartPointDto
-            {
-                Date = r.CreatedAt.ToString("yyyy-MM-dd"),
-                Quantity = r.QuantityRequested,
-                Series = "Historical"
-            })
-            .ToListAsync();
-
-        var forecasts = await _db.DemandForecast
-            .AsNoTracking()
-            .Where(f => f.VendorId == vendorId &&
-                        f.ProductId == productId &&
-                        f.ModelName == modelName)
-            .OrderBy(f => f.ForecastDate)
-            .Select(f => new ForecastChartPointDto
-            {
-                Date = f.ForecastDate.ToString("yyyy-MM-dd"),
-                Quantity = f.ForecastQty,
-                Series = "Forecast"
-            })
-            .ToListAsync();
-
-        return history.Concat(forecasts).ToList();
     }
 }
