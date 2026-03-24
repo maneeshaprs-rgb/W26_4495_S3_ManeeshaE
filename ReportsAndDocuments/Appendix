@@ -28,4 +28,24 @@
 9.	“Implement frontend chat UI components for messaging between users”
 10.	“Store authenticated user information in localStorage for messaging and session management”
 
+1.	“How to implement real-time chat functionality using SignalR in ASP.NET Core with React frontend” 
+2.	“Fix foreign key constraint error when creating chat conversation between two users in EF Core” 
+3.	“How to correctly store and retrieve authenticated userId from JWT/localStorage in React application” 
+4.	“Resolve SignalR connection issues including CORS and WebSocket negotiation errors in ASP.NET Core” 
+5.	“Design chat system with conversation creation, message storage, and real-time updates using SignalR” 
+6.	“Replace manual user ID input with searchable dropdown using name/email in React UI” 
+7.	“Create backend API to search users (vendors/farmers) by name or email using Entity Framework Core” 
+8.	“Fix React module import/export errors and ensure proper API integration structure” 
+9.	“Create API endpoints for vendor and product lookup with search functionality in ASP.NET Core” 
+10.	“How to handle validation errors and payload structure issues in React form submission to backend APIs” 
+11.	“Design recommendation system to suggest best vendors for farmers based on forecast and inventory data” 
+12.	“Implement ML-based or rule-based vendor recommendation logic using forecast demand and available inventory” 
+13.	“Create API endpoint to return top recommended vendors for a farmer dashboard” 
+14.	“Integrate vendor recommendation API into React dashboard and display results in a table UI” 
+15.	“Refactor React navigation into reusable sidebar components to reduce code duplication” 
+16.	“Fix routing and authentication issues causing unexpected redirects to login page in React Router” 
+17.	“Improve overall system integration between frontend and backend by aligning API contracts and data flow”
+18.	“check the endpoint error for chart forecast error that not populating in forecastApi.js”
+
+
 
