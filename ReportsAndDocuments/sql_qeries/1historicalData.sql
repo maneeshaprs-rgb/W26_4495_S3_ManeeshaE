@@ -33,9 +33,9 @@ ORDER BY RequestCount DESC;*/
 ----check required columns
 --SELECT TOP 10 * FROM Dispatch;
 
-/*SELECT TOP 50 *
+SELECT TOP 50 *
 FROM DemandForecast
-ORDER BY CreatedAt DESC;*/
+ORDER BY CreatedAt DESC;
 
 --Insert additional historical demand data automatically
 /*
@@ -95,13 +95,13 @@ WHERE NOT EXISTS
 );*/
 
 --Recheck total counts
-/*
-SELECT COUNT(*) AS UsersCount FROM AspNetUsers;
+
+-- SELECT COUNT(*) AS UsersCount FROM AspNetUsers;
 SELECT COUNT(*) AS ProductsCount FROM Product;
 SELECT COUNT(*) AS InventoryLotsCount FROM InventoryLot;
 SELECT COUNT(*) AS DemandRequestsCount FROM DemandRequest;
 SELECT COUNT(*) AS DispatchesCount FROM Dispatch;
-SELECT COUNT(*) AS ForecastsCount FROM DemandForecast;*/
+SELECT COUNT(*) AS ForecastsCount FROM DemandForecast;
 
 /*
 SELECT TOP 50 *
