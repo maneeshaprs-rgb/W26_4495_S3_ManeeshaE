@@ -82,7 +82,19 @@ public class AuthController : ControllerBase
             token = new JwtSecurityTokenHandler().WriteToken(token),
             role = roles.FirstOrDefault(),
             displayName = user.DisplayName,
-            userId = user.Id
+            userId = user.Id,
+            city = user.City,
+            province = user.Province,
+            postalCode = user.PostalCode,
+            latitude = user.Latitude,
+            longitude = user.Longitude,
+            profileComplete =
+                !string.IsNullOrWhiteSpace(user.DisplayName) &&
+                !string.IsNullOrWhiteSpace(user.City) &&
+                !string.IsNullOrWhiteSpace(user.Province) &&
+                !string.IsNullOrWhiteSpace(user.PostalCode) &&
+                user.Latitude.HasValue &&
+                user.Longitude.HasValue
         });
     }
 }
