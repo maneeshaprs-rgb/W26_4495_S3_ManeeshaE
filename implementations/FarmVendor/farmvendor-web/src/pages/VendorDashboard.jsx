@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 import VendorSidebar from "../assets/components/VendorSidebar";
 
+
 const API_BASE = import.meta.env.VITE_API_URL; // http://localhost:5136
 
 export default function Vendor_Dashboard() {

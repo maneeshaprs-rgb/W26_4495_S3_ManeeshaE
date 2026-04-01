@@ -72,6 +72,11 @@ export default function VendorSidebar() {
           Chat
         </div>
 
+         <div
+         className={`sidebar-link ${isActive("/profile/setup") ? "active" : ""}`} 
+        onClick={() => navigate("/vendor/profile")}
+        >Profile
+        </div>
         <div className="sidebar-link" onClick={logout}>
           Logout
         </div>

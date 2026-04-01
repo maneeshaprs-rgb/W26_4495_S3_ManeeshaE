@@ -29,8 +29,9 @@ export default function Login() {
         localStorage.setItem("role", role);
         localStorage.setItem("displayName", role === "Vendor" ? "Vendor User" : "Farmer User");
         localStorage.setItem("userId", role === "Vendor" ? "mock-vendor-id" : "mock-farmer-id");
+        localStorage.setItem("profileComplete", "false");
 
-        navigate(role === "Vendor" ? "/vendor" : "/farmer");
+        navigate("/profile/setup");
         return;
       }
 
@@ -50,13 +51,17 @@ export default function Login() {
 
       const data = await res.json();
 
-      // Expecting: { token, role, displayName, userId }
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("displayName", data.displayName);
       localStorage.setItem("userId", data.userId);
+      localStorage.setItem("profileComplete", String(data.profileComplete));
 
-      navigate(data.role === "Vendor" ? "/vendor" : "/farmer");
+      if (!data.profileComplete) {
+        navigate("/profile/setup");
+      } else {
+        navigate(data.role === "Vendor" ? "/vendor" : "/farmer");
+      }
     } catch (err) {
       setError(err?.message || "Something went wrong");
     } finally {
@@ -126,8 +131,6 @@ export default function Login() {
             <button className="auth-btn primary" disabled={loading}>
               {loading ? "Signing in..." : "Login"}
             </button>
-
-            
           </form>
 
           <div className="auth-footer">

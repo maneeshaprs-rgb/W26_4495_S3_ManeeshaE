@@ -26,6 +26,7 @@ import VendorForecast from "./pages/VendorForecast";
 //chats
 import VendorChat from "./pages/VendorChat";
 import FarmerChat from "./pages/FarmerChat";
+import ProfileSetup from "./pages/ProfileSetup";
 function App() {
   return (
     <BrowserRouter>
@@ -33,7 +34,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
+        <Route path="/profile/setup" element={<ProfileSetup />} />
         {/* Any logged-in user */}
         <Route element={<RequireAuth />}>
           {/* Farmer-only */}
@@ -61,6 +62,7 @@ function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
+        
       </Routes>
     </BrowserRouter>
   );

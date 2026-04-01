@@ -38,7 +38,7 @@ FROM DemandForecast
 ORDER BY CreatedAt DESC;
 
 --Insert additional historical demand data automatically
-/*
+
 GO
 
 ;WITH PairBase AS
@@ -92,7 +92,7 @@ WHERE NOT EXISTS
     WHERE d.VendorId = p.VendorId
       AND d.ProductId = p.ProductId
       AND d.CreatedAt = DATEADD(DAY, -7 * n.N, p.FirstCreatedAt)
-);*/
+);
 
 --Recheck total counts
 

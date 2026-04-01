@@ -72,6 +72,13 @@ export default function FarmerSidebar() {
           Chat
         </div>
 
+        <div
+          className={`sidebar-link ${isActive("/profile/setup") ? "active" : ""}`}
+          onClick={() => navigate("/profile/setup")}
+        >
+          Profile
+        </div>
+
         <div className="sidebar-link" onClick={logout}>
           Logout
         </div>
