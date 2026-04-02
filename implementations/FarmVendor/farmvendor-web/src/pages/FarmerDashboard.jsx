@@ -51,6 +51,11 @@ export default function FarmerDashboard() {
   });
   const [savingProduct, setSavingProduct] = useState(false);
 
+  // Unsplash image search
+  const [imageSearchResults, setImageSearchResults] = useState([]);
+  const [searchingImages, setSearchingImages] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
   // Create Dispatch modal
   const [showCreateDispatch, setShowCreateDispatch] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
@@ -127,23 +132,57 @@ export default function FarmerDashboard() {
     }
   };
 
+  // ---------- Unsplash Search ----------
+  const searchProductImages = async () => {
+    setLotError("");
+
+    if (!newProductForm.name.trim()) {
+      return setLotError("Enter product name before searching images.");
+    }
+
+    setSearchingImages(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/products/search-images?query=${encodeURIComponent(
+          newProductForm.name.trim()
+        )}`,
+        { headers: authHeaders }
+      );
+
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to search images.");
+
+      const data = JSON.parse(text);
+      setImageSearchResults(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setLotError(err?.message || "Failed to search images.");
+    } finally {
+      setSearchingImages(false);
+    }
+  };
+
   // ---------- Add Lot ----------
   const openAddLot = async () => {
     setPageError("");
     setLotError("");
     setShowAddLot(true);
     setShowNewProductFields(false);
+
     setNewProductForm({
       name: "",
       category: "",
       defaultUnit: "",
     });
+
     setLotForm({
       productId: "",
       quantityAvailable: "",
       unit: "",
       expiryDate: "",
     });
+
+    setImageSearchResults([]);
+    setSelectedImage(null);
 
     if (products.length === 0) {
       try {
@@ -177,6 +216,11 @@ export default function FarmerDashboard() {
             ? newProductForm.category.trim()
             : null,
           defaultUnit: newProductForm.defaultUnit.trim(),
+          imageUrl: selectedImage?.imageUrl || null,
+          imageThumbUrl: selectedImage?.thumbnailUrl || null,
+          imageSource: selectedImage?.source || null,
+          photographerName: selectedImage?.photographerName || null,
+          photographerProfile: selectedImage?.photographerProfile || null,
         }),
       });
 
@@ -199,6 +243,8 @@ export default function FarmerDashboard() {
         defaultUnit: "",
       });
 
+      setImageSearchResults([]);
+      setSelectedImage(null);
       setShowNewProductFields(false);
       setLotError("");
     } catch (err) {
@@ -610,7 +656,10 @@ export default function FarmerDashboard() {
                 <button
                   type="button"
                   className="fab-add-product"
-                  onClick={() => setShowNewProductFields((prev) => !prev)}
+                  onClick={() => {
+                    setShowNewProductFields((prev) => !prev);
+                    setLotError("");
+                  }}
                   title="Add a new product"
                 >
                   <span className="fab-plus">+</span>
@@ -663,6 +712,55 @@ export default function FarmerDashboard() {
                       />
                     </label>
 
+                    <div className="image-search-toolbar">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={searchProductImages}
+                        disabled={searchingImages}
+                      >
+                        {searchingImages ? "Searching..." : "Find Images"}
+                      </button>
+                    </div>
+
+                    {selectedImage && (
+                      <div className="selected-image-preview">
+                        <img
+                          src={selectedImage.thumbnailUrl || selectedImage.imageUrl}
+                          alt={selectedImage.alt || newProductForm.name}
+                        />
+                        <div>
+                          <div className="selected-image-title">Selected image</div>
+                          <div className="selected-image-meta">
+                            {selectedImage.photographerName
+                              ? `Photo by ${selectedImage.photographerName} on Unsplash`
+                              : "Unsplash image selected"}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {imageSearchResults.length > 0 && (
+                      <div className="image-picker-grid">
+                        {imageSearchResults.map((img, idx) => (
+                          <button
+                            key={`${img.imageUrl}-${idx}`}
+                            type="button"
+                            className={`image-card ${
+                              selectedImage?.imageUrl === img.imageUrl ? "selected" : ""
+                            }`}
+                            onClick={() => setSelectedImage(img)}
+                          >
+                            <img
+                              src={img.thumbnailUrl || img.imageUrl}
+                              alt={img.alt || "product"}
+                            />
+                            <span>Select</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="new-product-actions">
                       <button
                         type="button"
@@ -679,6 +777,8 @@ export default function FarmerDashboard() {
                         onClick={() => {
                           setShowNewProductFields(false);
                           setLotError("");
+                          setImageSearchResults([]);
+                          setSelectedImage(null);
                         }}
                       >
                         Cancel
@@ -732,6 +832,8 @@ export default function FarmerDashboard() {
                   onClick={() => {
                     setShowAddLot(false);
                     setLotError("");
+                    setImageSearchResults([]);
+                    setSelectedImage(null);
                   }}
                 >
                   Cancel
