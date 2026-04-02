@@ -131,8 +131,8 @@ public class DemandForecastService
                 {
                     DateTime nextDate =
                         granularity.Equals("Weekly", StringComparison.OrdinalIgnoreCase)
-                            ? lastHistoryDate.AddDays(7 * (i + 1))
-                            : lastHistoryDate.AddDays(i + 1);
+                            ? forecastStartDate.Date.AddDays(7 * i)
+                            : forecastStartDate.Date.AddDays(i);
 
                     decimal qty = Math.Round(
                         Convert.ToDecimal(Math.Max(0, mlResult.Forecast[i])), 2);

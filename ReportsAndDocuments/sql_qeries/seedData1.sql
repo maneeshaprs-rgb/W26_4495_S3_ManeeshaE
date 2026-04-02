@@ -9,7 +9,7 @@ SELECT COUNT(*) AS Dispatches FROM Dispatch;
 
 SELECT TOP 10 Email, UserName FROM AspNetUsers;
 SELECT TOP 10 * FROM AspNetUsers;
-SELECT TOP 10 * FROM Product;
+SELECT * FROM Product;
 
 SELECT TOP 10 * FROM InventoryLot ORDER BY CreatedAt DESC;
 
