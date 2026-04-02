@@ -36,6 +36,15 @@ export default function FarmerDashboard() {
   });
   const [savingLot, setSavingLot] = useState(false);
 
+  // New Product inside Add Lot modal
+  const [showNewProductFields, setShowNewProductFields] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({
+    name: "",
+    category: "",
+    defaultUnit: "",
+  });
+  const [savingProduct, setSavingProduct] = useState(false);
+
   // Create Dispatch modal
   const [showCreateDispatch, setShowCreateDispatch] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
@@ -71,7 +80,9 @@ export default function FarmerDashboard() {
   const loadProducts = async () => {
     const res = await fetch(`${API_BASE}/api/products/active`, { headers: authHeaders });
     const text = await res.text();
+
     if (!res.ok) throw new Error(text || "Failed to load products");
+
     setProducts(JSON.parse(text));
   };
 
@@ -114,6 +125,12 @@ export default function FarmerDashboard() {
   const openAddLot = async () => {
     setError("");
     setShowAddLot(true);
+    setShowNewProductFields(false);
+    setNewProductForm({
+      name: "",
+      category: "",
+      defaultUnit: "",
+    });
 
     if (products.length === 0) {
       try {
@@ -121,6 +138,59 @@ export default function FarmerDashboard() {
       } catch (e) {
         setError(e?.message || "Failed to load products for lot form");
       }
+    }
+  };
+
+  const submitNewProduct = async () => {
+    setError("");
+
+    if (!newProductForm.name.trim()) {
+      return setError("Product name is required.");
+    }
+
+    if (!newProductForm.defaultUnit.trim()) {
+      return setError("Default unit is required.");
+    }
+
+    setSavingProduct(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/products`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          name: newProductForm.name.trim(),
+          category: newProductForm.category.trim()
+            ? newProductForm.category.trim()
+            : null,
+          defaultUnit: newProductForm.defaultUnit.trim(),
+        }),
+      });
+
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to create product.");
+
+      const createdProduct = JSON.parse(text);
+
+      await loadProducts();
+
+      setLotForm((prev) => ({
+        ...prev,
+        productId: String(createdProduct.productId),
+        unit: createdProduct.defaultUnit || prev.unit,
+      }));
+
+      setNewProductForm({
+        name: "",
+        category: "",
+        defaultUnit: "",
+      });
+
+      setShowNewProductFields(false);
+    } catch (err) {
+      setError(err?.message || "Failed to create product.");
+    } finally {
+      setSavingProduct(false);
     }
   };
 
@@ -276,7 +346,6 @@ export default function FarmerDashboard() {
             {error && <div className="auth-alert error">{error}</div>}
             {loading && <div className="auth-hint">Loading dashboard data...</div>}
 
-            {/* Stats */}
             <section className="stats">
               <div className="stat-card">
                 <div className="stat-top">
@@ -310,7 +379,6 @@ export default function FarmerDashboard() {
             </section>
 
             <section className="grid-sections">
-              {/* Current Stock */}
               <div className="card">
                 <div className="card-header">
                   <h2>Current Stock</h2>
@@ -360,7 +428,6 @@ export default function FarmerDashboard() {
                 </div>
               </div>
 
-              {/* Vendor Requests */}
               <div className="card">
                 <div className="card-header">
                   <h2>Upcoming Vendor Requests</h2>
@@ -413,7 +480,6 @@ export default function FarmerDashboard() {
               </div>
             </section>
 
-            {/* Top Vendors for Dispatching */}
             <section style={{ marginTop: 14 }}>
               <div className="card">
                 <div className="card-header">
@@ -465,7 +531,6 @@ export default function FarmerDashboard() {
         </main>
       </div>
 
-      {/* Add Product Lot Modal */}
       {showAddLot && (
         <div className="modal-backdrop" onClick={() => setShowAddLot(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -483,11 +548,18 @@ export default function FarmerDashboard() {
                   value={lotForm.productId}
                   onChange={(e) => {
                     const id = e.target.value;
+
+                    if (id === "__new__") {
+                      setShowNewProductFields(true);
+                      return;
+                    }
+
                     const p = products.find((x) => String(x.productId) === String(id));
+
                     setLotForm((prev) => ({
                       ...prev,
                       productId: id,
-                      unit: prev.unit || (p?.defaultUnit ?? ""),
+                      unit: p?.defaultUnit ?? "",
                     }));
                   }}
                 >
@@ -497,8 +569,82 @@ export default function FarmerDashboard() {
                       {p.name} ({p.defaultUnit})
                     </option>
                   ))}
+                  <option value="__new__">+ Add New Product</option>
                 </select>
               </label>
+
+              {showNewProductFields && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 12,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    background: "#fafafa",
+                  }}
+                >
+                  <label className="field">
+                    <span>New Product Name</span>
+                    <input
+                      value={newProductForm.name}
+                      onChange={(e) =>
+                        setNewProductForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Carrots"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Category (optional)</span>
+                    <input
+                      value={newProductForm.category}
+                      onChange={(e) =>
+                        setNewProductForm((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Vegetables"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Default Unit</span>
+                    <input
+                      value={newProductForm.defaultUnit}
+                      onChange={(e) =>
+                        setNewProductForm((prev) => ({
+                          ...prev,
+                          defaultUnit: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., kg / L / dozen"
+                    />
+                  </label>
+
+                  <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={submitNewProduct}
+                      disabled={savingProduct}
+                    >
+                      {savingProduct ? "Saving..." : "Save Product"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowNewProductFields(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="row">
                 <label className="field">
@@ -554,7 +700,6 @@ export default function FarmerDashboard() {
         </div>
       )}
 
-      {/* Create Dispatch Modal */}
       {showCreateDispatch && (
         <div className="modal-backdrop" onClick={() => setShowCreateDispatch(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
