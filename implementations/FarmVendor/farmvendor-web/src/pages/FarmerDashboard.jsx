@@ -23,7 +23,13 @@ export default function FarmerDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
-  const [error, setError] = useState("");
+
+  // page-level error only
+  const [pageError, setPageError] = useState("");
+
+  // modal-level errors
+  const [lotError, setLotError] = useState("");
+  const [dispatchError, setDispatchError] = useState("");
 
   // Add Product Lot modal
   const [showAddLot, setShowAddLot] = useState(false);
@@ -115,7 +121,7 @@ export default function FarmerDashboard() {
       );
       setRecommendedVendors(data);
     } catch (e) {
-      setError(e?.message || "Failed to load recommended vendors");
+      setPageError(e?.message || "Failed to load recommended vendors");
     } finally {
       setLoadingRecommendations(false);
     }
@@ -123,7 +129,8 @@ export default function FarmerDashboard() {
 
   // ---------- Add Lot ----------
   const openAddLot = async () => {
-    setError("");
+    setPageError("");
+    setLotError("");
     setShowAddLot(true);
     setShowNewProductFields(false);
     setNewProductForm({
@@ -131,25 +138,31 @@ export default function FarmerDashboard() {
       category: "",
       defaultUnit: "",
     });
+    setLotForm({
+      productId: "",
+      quantityAvailable: "",
+      unit: "",
+      expiryDate: "",
+    });
 
     if (products.length === 0) {
       try {
         await loadProducts();
       } catch (e) {
-        setError(e?.message || "Failed to load products for lot form");
+        setLotError(e?.message || "Failed to load products for lot form");
       }
     }
   };
 
   const submitNewProduct = async () => {
-    setError("");
+    setLotError("");
 
     if (!newProductForm.name.trim()) {
-      return setError("Product name is required.");
+      return setLotError("Product name is required.");
     }
 
     if (!newProductForm.defaultUnit.trim()) {
-      return setError("Default unit is required.");
+      return setLotError("Default unit is required.");
     }
 
     setSavingProduct(true);
@@ -187,8 +200,9 @@ export default function FarmerDashboard() {
       });
 
       setShowNewProductFields(false);
+      setLotError("");
     } catch (err) {
-      setError(err?.message || "Failed to create product.");
+      setLotError(err?.message || "Failed to create product.");
     } finally {
       setSavingProduct(false);
     }
@@ -196,11 +210,11 @@ export default function FarmerDashboard() {
 
   const submitLot = async (e) => {
     e.preventDefault();
-    setError("");
+    setLotError("");
 
-    if (!lotForm.productId) return setError("Please select a product.");
+    if (!lotForm.productId) return setLotError("Please select a product.");
     if (!lotForm.quantityAvailable || Number(lotForm.quantityAvailable) <= 0) {
-      return setError("Quantity must be greater than 0.");
+      return setLotError("Quantity must be greater than 0.");
     }
 
     setSavingLot(true);
@@ -224,6 +238,7 @@ export default function FarmerDashboard() {
       if (!res.ok) throw new Error(text || "Failed to create inventory lot.");
 
       setShowAddLot(false);
+      setLotError("");
       setLotForm({
         productId: "",
         quantityAvailable: "",
@@ -234,7 +249,7 @@ export default function FarmerDashboard() {
       await loadDashboard();
       await loadRecommendedVendors();
     } catch (err) {
-      setError(err?.message || "Failed to save inventory lot");
+      setLotError(err?.message || "Failed to save inventory lot");
     } finally {
       setSavingLot(false);
     }
@@ -242,14 +257,15 @@ export default function FarmerDashboard() {
 
   // ---------- Create Dispatch ----------
   const openCreateDispatch = async () => {
-    setError("");
+    setPageError("");
+    setDispatchError("");
 
     try {
       if (requests.length === 0) {
         await loadDashboard();
       }
     } catch (e) {
-      setError(e?.message || "Failed to load requests");
+      setDispatchError(e?.message || "Failed to load requests");
     }
 
     setDispatchForm({
@@ -262,11 +278,14 @@ export default function FarmerDashboard() {
 
   const submitDispatch = async (e) => {
     e.preventDefault();
-    setError("");
+    setDispatchError("");
 
-    if (!dispatchForm.demandRequestId) return setError("Please select a request.");
+    if (!dispatchForm.demandRequestId) {
+      return setDispatchError("Please select a request.");
+    }
+
     if (!dispatchForm.quantityDispatched || Number(dispatchForm.quantityDispatched) <= 0) {
-      return setError("Dispatch quantity must be greater than 0.");
+      return setDispatchError("Dispatch quantity must be greater than 0.");
     }
 
     setSavingDispatch(true);
@@ -289,11 +308,12 @@ export default function FarmerDashboard() {
       if (!res.ok) throw new Error(text || "Failed to create dispatch.");
 
       setShowCreateDispatch(false);
+      setDispatchError("");
 
       await loadDashboard();
       await loadRecommendedVendors();
     } catch (err) {
-      setError(err?.message || "Failed to create dispatch.");
+      setDispatchError(err?.message || "Failed to create dispatch.");
     } finally {
       setSavingDispatch(false);
     }
@@ -307,13 +327,13 @@ export default function FarmerDashboard() {
 
     const run = async () => {
       setLoading(true);
-      setError("");
+      setPageError("");
       try {
         await loadDashboard();
         await loadProducts();
         await loadRecommendedVendors();
       } catch (e) {
-        setError(e?.message || "Something went wrong loading dashboard");
+        setPageError(e?.message || "Something went wrong loading dashboard");
       } finally {
         setLoading(false);
       }
@@ -343,7 +363,7 @@ export default function FarmerDashboard() {
               </div>
             </div>
 
-            {error && <div className="auth-alert error">{error}</div>}
+            {pageError && <div className="auth-alert error">{pageError}</div>}
             {loading && <div className="auth-hint">Loading dashboard data...</div>}
 
             <section className="stats">
@@ -542,109 +562,131 @@ export default function FarmerDashboard() {
             </div>
 
             <form onSubmit={submitLot} className="modal-body">
-              <label className="field">
-                <span>Product</span>
-                <select
-                  value={lotForm.productId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-
-                    if (id === "__new__") {
-                      setShowNewProductFields(true);
-                      return;
-                    }
-
-                    const p = products.find((x) => String(x.productId) === String(id));
-
-                    setLotForm((prev) => ({
-                      ...prev,
-                      productId: id,
-                      unit: p?.defaultUnit ?? "",
-                    }));
-                  }}
-                >
-                  <option value="">-- Select --</option>
-                  {products.map((p) => (
-                    <option key={p.productId} value={p.productId}>
-                      {p.name} ({p.defaultUnit})
-                    </option>
-                  ))}
-                  <option value="__new__">+ Add New Product</option>
-                </select>
-              </label>
-
-              {showNewProductFields && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    padding: 12,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 8,
-                    background: "#fafafa",
-                  }}
-                >
-                  <label className="field">
-                    <span>New Product Name</span>
-                    <input
-                      value={newProductForm.name}
-                      onChange={(e) =>
-                        setNewProductForm((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g., Carrots"
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Category (optional)</span>
-                    <input
-                      value={newProductForm.category}
-                      onChange={(e) =>
-                        setNewProductForm((prev) => ({
-                          ...prev,
-                          category: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g., Vegetables"
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Default Unit</span>
-                    <input
-                      value={newProductForm.defaultUnit}
-                      onChange={(e) =>
-                        setNewProductForm((prev) => ({
-                          ...prev,
-                          defaultUnit: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g., kg / L / dozen"
-                    />
-                  </label>
-
-                  <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={submitNewProduct}
-                      disabled={savingProduct}
-                    >
-                      {savingProduct ? "Saving..." : "Save Product"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setShowNewProductFields(false)}
-                    >
-                      Cancel
-                    </button>
+              {lotError && (
+                <div className="modal-notice modal-notice-error" role="alert">
+                  <div className="modal-notice-icon">!</div>
+                  <div className="modal-notice-content">
+                    <div className="modal-notice-title">Please check this form</div>
+                    <div className="modal-notice-text">{lotError}</div>
                   </div>
+                  <button
+                    type="button"
+                    className="modal-notice-close"
+                    onClick={() => setLotError("")}
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
                 </div>
               )}
+
+              <div className="product-picker-wrap">
+                <label className="field">
+                  <span>Product</span>
+                  <select
+                    value={lotForm.productId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const p = products.find((x) => String(x.productId) === String(id));
+
+                      setLotForm((prev) => ({
+                        ...prev,
+                        productId: id,
+                        unit: p?.defaultUnit ?? "",
+                      }));
+
+                      if (lotError) setLotError("");
+                    }}
+                  >
+                    <option value="">-- Select --</option>
+                    {products.map((p) => (
+                      <option key={p.productId} value={p.productId}>
+                        {p.name} ({p.defaultUnit})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  className="fab-add-product"
+                  onClick={() => setShowNewProductFields((prev) => !prev)}
+                  title="Add a new product"
+                >
+                  <span className="fab-plus">+</span>
+                  <span>{showNewProductFields ? "Close" : "New Product"}</span>
+                </button>
+              </div>
+
+              <div className="new-product-section">
+                {showNewProductFields && (
+                  <div className="new-product-card">
+                    <label className="field">
+                      <span>New Product Name</span>
+                      <input
+                        value={newProductForm.name}
+                        onChange={(e) =>
+                          setNewProductForm((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g., Carrots"
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Category (optional)</span>
+                      <input
+                        value={newProductForm.category}
+                        onChange={(e) =>
+                          setNewProductForm((prev) => ({
+                            ...prev,
+                            category: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g., Vegetables"
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Default Unit</span>
+                      <input
+                        value={newProductForm.defaultUnit}
+                        onChange={(e) =>
+                          setNewProductForm((prev) => ({
+                            ...prev,
+                            defaultUnit: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g., kg / L / dozen"
+                      />
+                    </label>
+
+                    <div className="new-product-actions">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={submitNewProduct}
+                        disabled={savingProduct}
+                      >
+                        {savingProduct ? "Saving..." : "Save Product"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowNewProductFields(false);
+                          setLotError("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="row">
                 <label className="field">
@@ -687,7 +729,10 @@ export default function FarmerDashboard() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setShowAddLot(false)}
+                  onClick={() => {
+                    setShowAddLot(false);
+                    setLotError("");
+                  }}
                 >
                   Cancel
                 </button>
@@ -711,6 +756,24 @@ export default function FarmerDashboard() {
             </div>
 
             <form onSubmit={submitDispatch} className="modal-body">
+              {dispatchError && (
+                <div className="modal-notice modal-notice-error" role="alert">
+                  <div className="modal-notice-icon">!</div>
+                  <div className="modal-notice-content">
+                    <div className="modal-notice-title">Please check this form</div>
+                    <div className="modal-notice-text">{dispatchError}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="modal-notice-close"
+                    onClick={() => setDispatchError("")}
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
               <label className="field">
                 <span>Select Request</span>
                 <select
@@ -726,6 +789,8 @@ export default function FarmerDashboard() {
                       demandRequestId: id,
                       quantityDispatched: req ? String(req.qty) : prev.quantityDispatched,
                     }));
+
+                    if (dispatchError) setDispatchError("");
                   }}
                 >
                   <option value="">-- Select --</option>
@@ -771,7 +836,10 @@ export default function FarmerDashboard() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setShowCreateDispatch(false)}
+                  onClick={() => {
+                    setShowCreateDispatch(false);
+                    setDispatchError("");
+                  }}
                 >
                   Cancel
                 </button>
