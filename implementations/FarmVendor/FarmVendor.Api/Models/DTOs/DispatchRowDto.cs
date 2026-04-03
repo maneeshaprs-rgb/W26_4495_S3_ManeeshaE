@@ -18,4 +18,7 @@ public class DispatchRowDto
     public DateTime DispatchDate { get; set; }
     public string DeliveryStatus { get; set; } = "Planned";
     public DateTime CreatedAt { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? ImageThumbUrl { get; set; }
+    public double? DistanceToVendor { get; set; } 
 }

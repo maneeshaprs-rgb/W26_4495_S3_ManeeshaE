@@ -732,6 +732,10 @@
   font-size: 13px;
 }
 
+.table-product:hover {
+  background-color: #f0fdf4;
+  cursor: pointer;
+}
 
 
 @media (max-width: 980px) {
