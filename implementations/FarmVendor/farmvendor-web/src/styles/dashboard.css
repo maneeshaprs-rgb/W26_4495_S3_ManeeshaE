@@ -790,6 +790,8 @@
   }
 }
 
+
+
 @media (max-width: 520px) {
   .row {
     grid-template-columns: 1fr;
