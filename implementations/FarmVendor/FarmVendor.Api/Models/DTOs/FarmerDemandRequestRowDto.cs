@@ -15,4 +15,6 @@ public class FarmerDemandRequestRowDto
     // optional display fields (safe even if null)
     public string? VendorName { get; set; }
     public string? VendorEmail { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? ImageThumbUrl { get; set; }
 }

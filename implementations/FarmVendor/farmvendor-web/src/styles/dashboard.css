@@ -1,15 +1,11 @@
-/* ====== FarmVendor Dashboard Theme ====== */
 :root {
   --green-700: #0f5a45;
   --green-800: #0b4a39;
   --green-50: #eff7f3;
-
   --text: #1f2937;
   --muted: #6b7280;
-
   --card: #ffffff;
   --line: #e5e7eb;
-
   --shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   --radius: 14px;
 }
@@ -35,7 +31,6 @@
   align-items: start;
 }
 
-/* ===== Sidebar ===== */
 .sidebar {
   background: linear-gradient(180deg, var(--green-700), var(--green-800));
   color: #fff;
@@ -107,7 +102,6 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* ===== Main ===== */
 .main {
   width: 100%;
   min-width: 0;
@@ -118,7 +112,6 @@
   max-width: none;
 }
 
-/* ===== Topbar ===== */
 .topbar {
   display: flex;
   align-items: center;
@@ -157,7 +150,6 @@
   font-size: 13px;
 }
 
-/* ===== Stats ===== */
 .stats {
   margin-top: 14px;
   display: grid;
@@ -205,7 +197,6 @@
   border-radius: 999px;
 }
 
-/* ===== Sections ===== */
 .grid-sections {
   margin-top: 14px;
   display: grid;
@@ -244,7 +235,6 @@
   overflow-x: auto;
 }
 
-/* ===== Tables ===== */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -270,7 +260,6 @@
   border-bottom: none;
 }
 
-/* ===== Badges ===== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -305,7 +294,6 @@
   border-color: #d1d5db;
 }
 
-/* ===== Buttons ===== */
 .btn {
   border: none;
   outline: none;
@@ -336,7 +324,6 @@
   background: #eceff3;
 }
 
-/* ===== Modal ===== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -415,7 +402,6 @@
   margin-top: 6px;
 }
 
-/* ===== Beautiful modal error notification ===== */
 .modal-notice {
   display: flex;
   align-items: flex-start;
@@ -490,7 +476,6 @@
   }
 }
 
-/* ===== Product picker floating action button ===== */
 .product-picker-wrap {
   position: relative;
   margin-bottom: 6px;
@@ -557,7 +542,6 @@
   gap: 10px;
 }
 
-/* ===== Unsplash image picker ===== */
 .image-search-toolbar {
   margin-top: 6px;
 }
@@ -633,7 +617,101 @@
   color: #6b7280;
 }
 
-/* ===== Helpers ===== */
+.product-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.product-cell-thumb {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.product-cell-placeholder {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+  background: #eef7f1;
+  color: #2f855a;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.product-cell-name {
+  white-space: nowrap;
+}
+
+.product-image-select,
+.dispatch-image-select {
+  margin-bottom: 2px;
+}
+
+.product-select-option,
+.dispatch-select-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.product-select-thumb,
+.dispatch-select-thumb {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.product-select-placeholder,
+.dispatch-select-placeholder {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+  background: #eef7f1;
+  color: #2f855a;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.product-select-texts,
+.dispatch-select-texts {
+  min-width: 0;
+}
+
+.product-select-name,
+.dispatch-select-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.product-select-meta,
+.dispatch-select-meta {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
 .auth-alert.error {
   margin-top: 12px;
   padding: 10px 12px;
@@ -654,7 +732,6 @@
   font-size: 13px;
 }
 
-/* ===== Responsive ===== */
 @media (max-width: 980px) {
   .dashboard-layout {
     grid-template-columns: 1fr;

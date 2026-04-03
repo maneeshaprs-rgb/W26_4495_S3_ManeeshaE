@@ -75,6 +75,8 @@ public class FarmerController : ControllerBase
             .Select(l => new
             {
                 product = l.Product.Name,
+                imageUrl = l.Product.ImageUrl,
+                imageThumbUrl = l.Product.ImageThumbUrl,
                 qty = l.QuantityAvailable,
                 unit = l.Unit,
                 expiry = l.ExpiryDate
@@ -97,8 +99,10 @@ public class FarmerController : ControllerBase
             .Take(10)
             .Select(r => new
             {
-                demandRequestId = r.DemandRequestId,
+               demandRequestId = r.DemandRequestId,
                 product = r.Product.Name,
+                imageUrl = r.Product.ImageUrl,
+                imageThumbUrl = r.Product.ImageThumbUrl,
                 qty = r.QuantityRequested,
                 unit = r.Unit,
                 neededBy = r.NeededBy
@@ -197,6 +201,8 @@ public class FarmerController : ControllerBase
                 DemandRequestId = r.DemandRequestId,
                 ProductId = r.ProductId,
                 Product = r.Product.Name,
+                ImageUrl = r.Product.ImageUrl,
+                ImageThumbUrl = r.Product.ImageThumbUrl,
                 Qty = r.QuantityRequested,
                 Unit = r.Unit,
                 NeededBy = r.NeededBy,

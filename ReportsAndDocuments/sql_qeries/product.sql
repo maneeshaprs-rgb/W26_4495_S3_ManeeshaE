@@ -1,2 +1,7 @@
 USE FarmVendorDb;
 select * from Product;
+
+SELECT COLUMN_NAME 
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'Product';
+

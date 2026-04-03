@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import Select from "react-select";
 import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 import FarmerSidebar from "../assets/components/FarmerSidebar";
@@ -24,14 +25,10 @@ export default function FarmerDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
-  // page-level error only
   const [pageError, setPageError] = useState("");
-
-  // modal-level errors
   const [lotError, setLotError] = useState("");
   const [dispatchError, setDispatchError] = useState("");
 
-  // Add Product Lot modal
   const [showAddLot, setShowAddLot] = useState(false);
   const [products, setProducts] = useState([]);
   const [lotForm, setLotForm] = useState({
@@ -42,7 +39,6 @@ export default function FarmerDashboard() {
   });
   const [savingLot, setSavingLot] = useState(false);
 
-  // New Product inside Add Lot modal
   const [showNewProductFields, setShowNewProductFields] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     name: "",
@@ -51,12 +47,10 @@ export default function FarmerDashboard() {
   });
   const [savingProduct, setSavingProduct] = useState(false);
 
-  // Unsplash image search
   const [imageSearchResults, setImageSearchResults] = useState([]);
   const [searchingImages, setSearchingImages] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // Create Dispatch modal
   const [showCreateDispatch, setShowCreateDispatch] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
     demandRequestId: "",
@@ -71,6 +65,97 @@ export default function FarmerDashboard() {
       Authorization: `Bearer ${token}`,
     };
   }, [token]);
+
+  const productOptions = useMemo(() => {
+    return products.map((p) => ({
+      value: p.productId,
+      label: p.name,
+      defaultUnit: p.defaultUnit,
+      imageThumbUrl: p.imageThumbUrl || "",
+      imageUrl: p.imageUrl || "",
+      category: p.category || "",
+    }));
+  }, [products]);
+
+  const selectedProductOption = useMemo(() => {
+    return (
+      productOptions.find((o) => String(o.value) === String(lotForm.productId)) || null
+    );
+  }, [productOptions, lotForm.productId]);
+
+  const dispatchRequestOptions = useMemo(() => {
+    return requests.map((r) => ({
+      value: r.demandRequestId,
+      demandRequestId: r.demandRequestId,
+      product: r.product,
+      qty: r.qty,
+      unit: r.unit,
+      neededBy: r.neededBy,
+      imageThumbUrl: r.imageThumbUrl || "",
+      imageUrl: r.imageUrl || "",
+      label: `#${r.demandRequestId} — ${r.product}`,
+    }));
+  }, [requests]);
+
+  const selectedDispatchRequestOption = useMemo(() => {
+    return (
+      dispatchRequestOptions.find(
+        (o) => String(o.value) === String(dispatchForm.demandRequestId)
+      ) || null
+    );
+  }, [dispatchRequestOptions, dispatchForm.demandRequestId]);
+
+  const selectStyles = useMemo(
+    () => ({
+      control: (base, state) => ({
+        ...base,
+        minHeight: 44,
+        borderRadius: 10,
+        borderColor: state.isFocused ? "#9ec5b0" : "#e5e7eb",
+        boxShadow: state.isFocused ? "0 0 0 3px rgba(47, 133, 90, 0.12)" : "none",
+        "&:hover": {
+          borderColor: "#9ec5b0",
+        },
+      }),
+      valueContainer: (base) => ({
+        ...base,
+        padding: "2px 10px",
+      }),
+      menu: (base) => ({
+        ...base,
+        zIndex: 9999,
+        borderRadius: 12,
+        overflow: "hidden",
+      }),
+      menuPortal: (base) => ({
+        ...base,
+        zIndex: 9999,
+      }),
+      option: (base, state) => ({
+        ...base,
+        backgroundColor: state.isSelected
+          ? "#e7f6ee"
+          : state.isFocused
+          ? "#f8fafc"
+          : "#fff",
+        color: "#1f2937",
+        padding: 10,
+        cursor: "pointer",
+      }),
+      placeholder: (base) => ({
+        ...base,
+        color: "#6b7280",
+      }),
+      singleValue: (base) => ({
+        ...base,
+        color: "#1f2937",
+      }),
+      indicatorSeparator: () => ({
+        display: "none",
+      }),
+    }),
+    []
+  );
 
   const logout = () => {
     localStorage.clear();
@@ -132,7 +217,6 @@ export default function FarmerDashboard() {
     }
   };
 
-  // ---------- Unsplash Search ----------
   const searchProductImages = async () => {
     setLotError("");
 
@@ -161,7 +245,6 @@ export default function FarmerDashboard() {
     }
   };
 
-  // ---------- Add Lot ----------
   const openAddLot = async () => {
     setPageError("");
     setLotError("");
@@ -301,7 +384,6 @@ export default function FarmerDashboard() {
     }
   };
 
-  // ---------- Create Dispatch ----------
   const openCreateDispatch = async () => {
     setPageError("");
     setDispatchError("");
@@ -389,6 +471,93 @@ export default function FarmerDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, navigate, authHeaders]);
 
+  const renderProductCell = (row) => {
+    const imageSrc = row.imageThumbUrl || row.imageUrl || "";
+
+    return (
+      <div className="product-cell">
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={row.product}
+            className="product-cell-thumb"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="product-cell-placeholder">
+            {row.product?.charAt(0)?.toUpperCase() || "P"}
+          </div>
+        )}
+        <span className="product-cell-name">{row.product}</span>
+      </div>
+    );
+  };
+
+  const renderProductOptionLabel = (option) => {
+    const imageSrc = option.imageThumbUrl || option.imageUrl || "";
+
+    return (
+      <div className="product-select-option">
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={option.label}
+            className="product-select-thumb"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="product-select-placeholder">
+            {option.label?.charAt(0)?.toUpperCase() || "P"}
+          </div>
+        )}
+        <div className="product-select-texts">
+          <div className="product-select-name">{option.label}</div>
+          <div className="product-select-meta">
+            {option.defaultUnit}
+            {option.category ? ` • ${option.category}` : ""}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDispatchRequestOptionLabel = (option) => {
+    const imageSrc = option.imageThumbUrl || option.imageUrl || "";
+
+    return (
+      <div className="dispatch-select-option">
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={option.product}
+            className="dispatch-select-thumb"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="dispatch-select-placeholder">
+            {option.product?.charAt(0)?.toUpperCase() || "P"}
+          </div>
+        )}
+
+        <div className="dispatch-select-texts">
+          <div className="dispatch-select-name">
+            {option.product}
+          </div>
+          <div className="dispatch-select-meta">
+            {option.qty} {option.unit} • Needed:{" "}
+            {new Date(option.neededBy).toISOString().slice(0, 10)}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-layout">
@@ -399,7 +568,9 @@ export default function FarmerDashboard() {
             <div className="topbar">
               <div>
                 <h1>Welcome, {displayName}</h1>
-                <div className="sub">Overview of your stock, requests, and vendor recommendations</div>
+                <div className="sub">
+                  Overview of your stock, requests, and vendor recommendations
+                </div>
               </div>
               <div className="topbar-right">
                 <span className="pill">Role: Farmer</span>
@@ -473,7 +644,7 @@ export default function FarmerDashboard() {
                           const badge = getStatusBadge(row.expiry);
                           return (
                             <tr key={idx}>
-                              <td>{row.product}</td>
+                              <td>{renderProductCell(row)}</td>
                               <td>
                                 {row.qty} {row.unit}
                               </td>
@@ -519,7 +690,7 @@ export default function FarmerDashboard() {
                       ) : (
                         requests.map((row, idx) => (
                           <tr key={row.demandRequestId ?? idx}>
-                            <td>{row.product}</td>
+                            <td>{renderProductCell(row)}</td>
                             <td>
                               {row.qty} {row.unit}
                             </td>
@@ -629,28 +800,28 @@ export default function FarmerDashboard() {
               <div className="product-picker-wrap">
                 <label className="field">
                   <span>Product</span>
-                  <select
-                    value={lotForm.productId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      const p = products.find((x) => String(x.productId) === String(id));
 
+                  <Select
+                    className="product-image-select"
+                    classNamePrefix="product-image-select"
+                    options={productOptions}
+                    value={selectedProductOption}
+                    onChange={(selected) => {
                       setLotForm((prev) => ({
                         ...prev,
-                        productId: id,
-                        unit: p?.defaultUnit ?? "",
+                        productId: selected ? String(selected.value) : "",
+                        unit: selected?.defaultUnit ?? "",
                       }));
 
                       if (lotError) setLotError("");
                     }}
-                  >
-                    <option value="">-- Select --</option>
-                    {products.map((p) => (
-                      <option key={p.productId} value={p.productId}>
-                        {p.name} ({p.defaultUnit})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="-- Select --"
+                    isClearable
+                    menuPortalTarget={document.body}
+                    styles={selectStyles}
+                    formatOptionLabel={renderProductOptionLabel}
+                    noOptionsMessage={() => "No products found"}
+                  />
                 </label>
 
                 <button
@@ -878,31 +1049,28 @@ export default function FarmerDashboard() {
 
               <label className="field">
                 <span>Select Request</span>
-                <select
-                  value={dispatchForm.demandRequestId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    const req = requests.find(
-                      (x) => String(x.demandRequestId) === String(id)
-                    );
 
+                <Select
+                  className="dispatch-image-select"
+                  classNamePrefix="dispatch-image-select"
+                  options={dispatchRequestOptions}
+                  value={selectedDispatchRequestOption}
+                  onChange={(selected) => {
                     setDispatchForm((prev) => ({
                       ...prev,
-                      demandRequestId: id,
-                      quantityDispatched: req ? String(req.qty) : prev.quantityDispatched,
+                      demandRequestId: selected ? String(selected.value) : "",
+                      quantityDispatched: selected ? String(selected.qty) : "",
                     }));
 
                     if (dispatchError) setDispatchError("");
                   }}
-                >
-                  <option value="">-- Select --</option>
-                  {requests.map((r) => (
-                    <option key={r.demandRequestId} value={r.demandRequestId}>
-                      #{r.demandRequestId} — {r.product} ({r.qty} {r.unit}) Needed:{" "}
-                      {new Date(r.neededBy).toISOString().slice(0, 10)}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="-- Select --"
+                  isClearable
+                  menuPortalTarget={document.body}
+                  styles={selectStyles}
+                  formatOptionLabel={renderDispatchRequestOptionLabel}
+                  noOptionsMessage={() => "No requests found"}
+                />
               </label>
 
               <label className="field">
