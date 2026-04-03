@@ -65,7 +65,7 @@ public class VendorDispatchesController : ControllerBase
                 DeliveryStatus = d.DeliveryStatus,
                 CreatedAt = d.CreatedAt,
                 VendorName = d.Vendor.DisplayName,
-                VendorEmail = d.Vendor.Email
+                VendorEmail = d.Vendor.Email,
             })
             .ToListAsync();
 

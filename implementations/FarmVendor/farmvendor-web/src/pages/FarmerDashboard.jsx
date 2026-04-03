@@ -1119,7 +1119,7 @@ export default function FarmerDashboard() {
               </div>
 
               <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
-                If options are missing, confirm your API returns <b>demandRequestId</b>.
+               
               </div>
             </form>
           </div>

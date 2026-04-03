@@ -146,6 +146,39 @@ export default function Vendor_Dashboard() {
     </div>
   );
 
+
+
+// Inside your VendorDashboard.jsx
+const productOptions = products.map((p) => ({
+  value: p.productId,
+  label: p.name,
+  defaultUnit: p.defaultUnit,
+  imageThumbUrl: p.imageThumbUrl || "",
+  imageUrl: p.imageUrl || "",
+}));
+
+const renderProductOptionLabel = (option) => (
+  <div className="dispatch-select-option">
+    {option.imageThumbUrl || option.imageUrl ? (
+      <img
+        src={option.imageThumbUrl || option.imageUrl}
+        alt={option.label}
+        className="dispatch-select-thumb"
+      />
+    ) : (
+      <div className="dispatch-select-placeholder">
+        {option.label?.charAt(0).toUpperCase() || "P"}
+      </div>
+    )}
+    <div className="dispatch-select-texts">
+      <div className="dispatch-select-name">{option.label}</div>
+      <div className="dispatch-select-meta">{option.defaultUnit}</div>
+    </div>
+  </div>
+);
+
+
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-layout">
@@ -249,7 +282,10 @@ export default function Vendor_Dashboard() {
         </main>
       </div>
 
-      {/* Create Demand Modal */}
+    
+
+
+
       {showCreateDemand && (
         <div className="modal-backdrop" onClick={() => setShowCreateDemand(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -300,6 +336,7 @@ export default function Vendor_Dashboard() {
           </div>
         </div>
       )}
+      
     </div>
   );
 }

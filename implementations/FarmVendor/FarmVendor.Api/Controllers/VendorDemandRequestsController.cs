@@ -54,7 +54,9 @@ public class VendorDemandRequestsController : ControllerBase
                 Status = r.Status,
                 VendorId = r.VendorId,
                 VendorName = r.Vendor.UserName,
-                VendorEmail = r.Vendor.Email
+                VendorEmail = r.Vendor.Email,
+                ImageUrl = r.Product.ImageUrl,           
+                ImageThumbUrl = r.Product.ImageThumbUrl 
             })
             .ToListAsync();
 
