@@ -313,4 +313,4 @@ private static double CalculateDistanceKm(double lat1, double lon1, double lat2,
     return R * c;
 }
 
-private static double DegreesToRadians(double deg) => deg * Math.PI / 180.0;
+private static double DegreesToRadians(double deg) => deg * Math.PI / 180.0;}

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import "../styles/dashboard.css";
 import FarmerSidebar from "../assets/components/FarmerSidebar";
 import { getRecommendedVendors } from "../assets/forecastApi";
+import { createConversation } from "../assets/chatApi";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -61,6 +62,9 @@ export default function FarmerDashboard() {
  // for upcoming vendor requests inline hover card
 const [hoveredRequest, setHoveredRequest] = useState(null);
 const [hoveredRowIndex, setHoveredRowIndex] = useState(null);
+
+//for chat panel inside popup window
+const [startingChat, setStartingChat] = useState(false);
 
   const authHeaders = useMemo(() => {
     return {
@@ -574,6 +578,41 @@ const handleRequestMouseLeave = () => {
   setHoveredRowIndex(null);
 };
 
+//function to start chat
+const startVendorChat = async (requestRow) => {
+  if (!requestRow?.vendorId) {
+    setPageError("Vendor is not available for chat.");
+    return;
+  }
+
+  setStartingChat(true);
+  setPageError("");
+
+  try {
+    const result = await createConversation(
+      { vendorId: requestRow.vendorId },
+      token
+    );
+
+    // Option 1: navigate to farmer chat page with conversation id
+    navigate("/farmer/chat", {
+      state: {
+        conversationId: result.conversationId,
+        vendorId: requestRow.vendorId,
+        vendorName: requestRow.vendorName,
+      },
+    });
+
+    // Option 2:
+    // if your FarmerChat page reads query params instead of state, use:
+    // navigate(`/farmer/chat?conversationId=${result.conversationId}`);
+  } catch (err) {
+    setPageError(err?.message || "Failed to start chat.");
+  } finally {
+    setStartingChat(false);
+  }
+};
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-layout">
@@ -765,11 +804,35 @@ const handleRequestMouseLeave = () => {
                                           {hoveredRequest.vendorEmail || "N/A"}
                                         </div>
 
+                                        <div className="request-hover-distance-row">
+                                          <div>
+                                            <span className="request-hover-label">Distance:</span>{" "}
+                                            {hoveredRequest.distanceToVendor != null
+                                              ? `${Number(hoveredRequest.distanceToVendor).toFixed(2)} km`
+                                              : "N/A"}
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            className="btn btn-primary request-hover-chat-btn"
+                                            onClick={() => startVendorChat(hoveredRequest)}
+                                            disabled={startingChat}
+                                          >
+                                            {startingChat
+                                              ? "Opening..."
+                                              : `Chat with ${hoveredRequest.vendorName || "Vendor"}`}
+                                          </button>
+                                        </div>
+
                                         <div>
-                                          <span className="request-hover-label">Distance:</span>{" "}
-                                          {hoveredRequest.distanceToVendor != null
-                                            ? `${Number(hoveredRequest.distanceToVendor).toFixed(2)} km`
-                                            : "N/A"}
+                                          <span className="request-hover-label">Address:</span>{" "}
+                                          {[
+                                            hoveredRequest.vendorCity,
+                                            hoveredRequest.vendorProvince,
+                                            hoveredRequest.vendorPostalCode,
+                                          ]
+                                            .filter(Boolean)
+                                            .join(", ") || "N/A"}
                                         </div>
 
                                         <div>
