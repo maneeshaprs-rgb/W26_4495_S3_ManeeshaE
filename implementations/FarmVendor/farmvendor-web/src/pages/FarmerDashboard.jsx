@@ -58,6 +58,9 @@ export default function FarmerDashboard() {
     dispatchDate: "",
   });
   const [savingDispatch, setSavingDispatch] = useState(false);
+ // for upcoming vendor requests inline hover card
+const [hoveredRequest, setHoveredRequest] = useState(null);
+const [hoveredRowIndex, setHoveredRowIndex] = useState(null);
 
   const authHeaders = useMemo(() => {
     return {
@@ -85,16 +88,20 @@ export default function FarmerDashboard() {
 
   const dispatchRequestOptions = useMemo(() => {
     return requests.map((r) => ({
-      value: r.demandRequestId,
-      demandRequestId: r.demandRequestId,
-      product: r.product,
-      qty: r.qty,
-      unit: r.unit,
-      neededBy: r.neededBy,
-      imageThumbUrl: r.imageThumbUrl || "",
-      imageUrl: r.imageUrl || "",
-      label: `#${r.demandRequestId} — ${r.product}`,
-    }));
+    value: r.demandRequestId,
+    demandRequestId: r.demandRequestId,
+    product: r.product,
+    qty: r.qty,
+    unit: r.unit,
+    neededBy: r.neededBy,
+    imageThumbUrl: r.imageThumbUrl || "",
+    imageUrl: r.imageUrl || "",
+    vendorId: r.vendorId || "",
+    vendorName: r.vendorName || "Vendor",
+    vendorEmail: r.vendorEmail || "",
+    distanceToVendor: r.distanceToVendor ?? null,
+    label: `#${r.demandRequestId} — ${r.product}`,
+  }));
   }, [requests]);
 
   const selectedDispatchRequestOption = useMemo(() => {
@@ -557,6 +564,15 @@ export default function FarmerDashboard() {
       </div>
     );
   };
+const handleRequestMouseEnter = (row, idx) => {
+  setHoveredRequest(row);
+  setHoveredRowIndex(idx);
+};
+
+const handleRequestMouseLeave = () => {
+  setHoveredRequest(null);
+  setHoveredRowIndex(null);
+};
 
   return (
     <div className="dashboard-page">
@@ -689,13 +705,84 @@ export default function FarmerDashboard() {
                         </tr>
                       ) : (
                         requests.map((row, idx) => (
-                          <tr key={row.demandRequestId ?? idx}>
-                            <td>{renderProductCell(row)}</td>
-                            <td>
-                              {row.qty} {row.unit}
-                            </td>
-                            <td>{new Date(row.neededBy).toISOString().slice(0, 10)}</td>
-                          </tr>
+                          <React.Fragment key={row.demandRequestId ?? idx}>
+                            <tr
+                              className="request-hover-row"
+                              onMouseEnter={() => handleRequestMouseEnter(row, idx)}
+                              onMouseLeave={handleRequestMouseLeave}
+                            >
+                              <td>{renderProductCell(row)}</td>
+                              <td>
+                                {row.qty} {row.unit}
+                              </td>
+                              <td>{new Date(row.neededBy).toISOString().slice(0, 10)}</td>
+                            </tr>
+
+                            {hoveredRowIndex === idx && hoveredRequest && (
+                              <tr
+                                className="request-hover-inline-row"
+                                onMouseEnter={() => handleRequestMouseEnter(row, idx)}
+                                onMouseLeave={handleRequestMouseLeave}
+                              >
+                                <td colSpan="3">
+                                  <div className="request-hover-inline-card">
+                                    <div className="request-hover-card-header">
+                                      <div className="request-hover-card-title">Vendor Details</div>
+                                    </div>
+
+                                    <div className="request-hover-card-body">
+                                      <div className="request-hover-product">
+                                        {hoveredRequest.imageThumbUrl || hoveredRequest.imageUrl ? (
+                                          <img
+                                            src={hoveredRequest.imageThumbUrl || hoveredRequest.imageUrl}
+                                            alt={hoveredRequest.product}
+                                            className="request-hover-thumb"
+                                          />
+                                        ) : (
+                                          <div className="request-hover-placeholder">
+                                            {hoveredRequest.product?.charAt(0)?.toUpperCase() || "P"}
+                                          </div>
+                                        )}
+
+                                        <div>
+                                          <div className="request-hover-product-name">
+                                            {hoveredRequest.product}
+                                          </div>
+                                          <div className="request-hover-meta">
+                                            {hoveredRequest.qty} {hoveredRequest.unit}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="request-hover-info">
+                                        <div>
+                                          <span className="request-hover-label">Vendor:</span>{" "}
+                                          {hoveredRequest.vendorName || "N/A"}
+                                        </div>
+
+                                        <div>
+                                          <span className="request-hover-label">Email:</span>{" "}
+                                          {hoveredRequest.vendorEmail || "N/A"}
+                                        </div>
+
+                                        <div>
+                                          <span className="request-hover-label">Distance:</span>{" "}
+                                          {hoveredRequest.distanceToVendor != null
+                                            ? `${Number(hoveredRequest.distanceToVendor).toFixed(2)} km`
+                                            : "N/A"}
+                                        </div>
+
+                                        <div>
+                                          <span className="request-hover-label">Needed By:</span>{" "}
+                                          {new Date(hoveredRequest.neededBy).toISOString().slice(0, 10)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         ))
                       )}
                     </tbody>
@@ -767,7 +854,7 @@ export default function FarmerDashboard() {
           </div>
         </main>
       </div>
-
+              
       {showAddLot && (
         <div className="modal-backdrop" onClick={() => setShowAddLot(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

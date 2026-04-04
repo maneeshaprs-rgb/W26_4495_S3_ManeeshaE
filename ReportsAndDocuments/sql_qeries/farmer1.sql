@@ -17,6 +17,6 @@ VALUES
 ('75d539c0-31cd-4561-a092-c9ce1a3718aa', 4, 25, 'L',  DATEADD(day, 6, GETUTCDATE()), GETUTCDATE());
 
 */
-
+USE FarmVendorDb;
 SELECT *
 FROM AspNetUsers

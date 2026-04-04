@@ -12,9 +12,15 @@ public class FarmerDemandRequestRowDto
     public string Status { get; set; } = "Open";
     public string VendorId { get; set; } = "";
 
-    // optional display fields (safe even if null)
+
     public string? VendorName { get; set; }
     public string? VendorEmail { get; set; }
+     public string? VendorCity { get; set; }
+    public string? VendorProvince { get; set; }
+    public string? VendorPostalCode { get; set; }
+
+    public double? DistanceToVendor { get; set; }
+
     public string? ImageUrl { get; set; }
     public string? ImageThumbUrl { get; set; }
 }

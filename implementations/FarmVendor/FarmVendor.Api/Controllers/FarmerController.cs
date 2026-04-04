@@ -87,30 +87,68 @@ public class FarmerController : ControllerBase
     }
 
     // 3) Upcoming vendor requests table
-    [HttpGet("dashboard/requests")]
-    public async Task<IActionResult> GetRequests()
+   [HttpGet("dashboard/requests")]
+public async Task<IActionResult> GetRequests()
+{
+    var farmerId = GetUserId();
+    if (string.IsNullOrEmpty(farmerId)) return Unauthorized();
+
+    var now = DateTime.UtcNow;
+
+    var farmer = await _db.Users
+        .AsNoTracking()
+        .FirstOrDefaultAsync(x => x.Id == farmerId);
+
+    if (farmer == null) return Unauthorized();
+
+    var rowsRaw = await _db.DemandRequest
+        .AsNoTracking()
+        .Where(r => r.Status == "Open" && r.NeededBy >= now)
+        .Include(r => r.Product)
+        .Include(r => r.Vendor)
+        .OrderBy(r => r.NeededBy)
+        .Take(10)
+        .ToListAsync();
+
+    var rows = rowsRaw.Select(r =>
     {
-        var now = DateTime.UtcNow;
+        double? distanceKm = null;
 
-        var rows = await _db.DemandRequest
-            .Where(r => r.Status == "Open" && r.NeededBy >= now)
-            .Include(r => r.Product)
-            .OrderBy(r => r.NeededBy)
-            .Take(10)
-            .Select(r => new
-            {
-               demandRequestId = r.DemandRequestId,
-                product = r.Product.Name,
-                imageUrl = r.Product.ImageUrl,
-                imageThumbUrl = r.Product.ImageThumbUrl,
-                qty = r.QuantityRequested,
-                unit = r.Unit,
-                neededBy = r.NeededBy
-            })
-            .ToListAsync();
+        if (farmer.Latitude.HasValue && farmer.Longitude.HasValue &&
+            r.Vendor != null &&
+            r.Vendor.Latitude.HasValue && r.Vendor.Longitude.HasValue)
+        {
+            distanceKm = CalculateDistanceKm(
+                (double)farmer.Latitude.Value,
+                (double)farmer.Longitude.Value,
+                (double)r.Vendor.Latitude.Value,
+                (double)r.Vendor.Longitude.Value
+            );
+        }
 
-        return Ok(rows);
-    }
+        return new FarmerDemandRequestRowDto
+        {
+            DemandRequestId = r.DemandRequestId,
+            ProductId = r.ProductId,
+            Product = r.Product.Name,
+            ImageUrl = r.Product.ImageUrl,
+            ImageThumbUrl = r.Product.ImageThumbUrl,
+            Qty = r.QuantityRequested,
+            Unit = r.Unit,
+            NeededBy = r.NeededBy,
+            Status = r.Status,
+            VendorId = r.VendorId,
+            VendorName = r.Vendor?.DisplayName,
+            VendorEmail = r.Vendor?.Email,
+            VendorCity = r.Vendor?.City,
+            VendorProvince = r.Vendor?.Province,
+            VendorPostalCode = r.Vendor?.PostalCode,
+            DistanceToVendor = distanceKm.HasValue ? Math.Round(distanceKm.Value, 2) : null
+        };
+    }).ToList();
+
+    return Ok(rows);
+}
 
     // 4) My Inventory Lots (farmer)
     [HttpGet("inventorylots")]
@@ -258,4 +296,21 @@ public class FarmerController : ControllerBase
         var rows = await _recommendationService.GetTopVendorsForFarmerAsync(farmerId, date);
         return Ok(rows);
     }
+
+
+private static double CalculateDistanceKm(double lat1, double lon1, double lat2, double lon2)
+{
+    double R = 6371;
+    double dLat = DegreesToRadians(lat2 - lat1);
+    double dLon = DegreesToRadians(lon2 - lon1);
+
+    double a =
+        Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+        Math.Cos(DegreesToRadians(lat1)) * Math.Cos(DegreesToRadians(lat2)) *
+        Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+
+    double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+    return R * c;
 }
+
+private static double DegreesToRadians(double deg) => deg * Math.PI / 180.0;

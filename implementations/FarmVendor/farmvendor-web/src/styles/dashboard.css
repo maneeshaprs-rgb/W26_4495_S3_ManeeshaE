@@ -737,7 +737,108 @@
   cursor: pointer;
 }
 
+/* hover popup card  */
+.request-hover-row {
+  cursor: pointer;
+}
 
+.request-hover-row:hover {
+  background: #f8fafc;
+}
+
+.request-hover-inline-row td {
+  padding: 0 8px 12px 8px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.request-hover-inline-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  animation: fadeHoverCard 0.16s ease-out;
+}
+
+.request-hover-card-header {
+  padding: 10px 12px;
+  background: #eff7f3;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.request-hover-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.request-hover-card-body {
+  padding: 12px;
+}
+
+.request-hover-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.request-hover-thumb {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+}
+
+.request-hover-placeholder {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+  background: #eef7f1;
+  color: #2f855a;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+.request-hover-product-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.request-hover-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.request-hover-info {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.request-hover-label {
+  font-weight: 700;
+  color: #111827;
+}
+
+@keyframes fadeHoverCard {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* end of hover popup card */
 @media (max-width: 980px) {
   .dashboard-layout {
     grid-template-columns: 1fr;
