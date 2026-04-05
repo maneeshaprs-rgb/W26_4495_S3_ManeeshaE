@@ -29,7 +29,7 @@ public class DemandForecastController : ControllerBase
             return BadRequest("ForecastDate is required.");
 
         if (string.IsNullOrWhiteSpace(dto.ModelName))
-            dto.ModelName = "MovingAverage";
+            dto.ModelName = "MLNET_SSA";
 
         List<Models.DemandForecast> forecasts;
 

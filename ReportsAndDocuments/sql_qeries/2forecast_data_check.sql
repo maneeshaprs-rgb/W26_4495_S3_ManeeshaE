@@ -15,3 +15,20 @@ SELECT ForecastDate, COUNT(*) AS ForecastCount
 FROM DemandForecast
 GROUP BY ForecastDate
 ORDER BY ForecastDate DESC;
+
+
+--Confirm whether forecast rows exist
+USE FarmVendorDb;
+
+SELECT TOP 50
+    DemandForecastId,
+    VendorId,
+    ProductId,
+    ForecastDate,
+    ForecastQty,
+    ModelName,
+    LookbackPeriods,
+    CreatedAt
+FROM DemandForecast
+ORDER BY CreatedAt DESC;
+

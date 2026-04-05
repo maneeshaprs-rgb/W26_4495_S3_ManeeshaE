@@ -7,10 +7,14 @@ public class GenerateForecastDto
     // for Moving Average
     public int LookbackPeriods { get; set; } = 3;
 
-    // choose model
-    public string ModelName { get; set; } = "MovingAverage";
+    // default model should be MLNET_SSA
+    public string ModelName { get; set; } = "MLNET_SSA";
 
     // for ML.NET
     public int Horizon { get; set; } = 7;
     public string? Granularity { get; set; } = "Daily";
+
+    // optional vendor filter
+    public string? VendorId { get; set; }
+    public string? VendorName { get; set; }
 }
