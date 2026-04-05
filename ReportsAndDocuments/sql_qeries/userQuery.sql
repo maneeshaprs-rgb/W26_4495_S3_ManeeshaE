@@ -1,5 +1,5 @@
 USE FarmVendorDb;
 GO
 
-SELECT Email, UserName
+SELECT Id,Email, UserName
 FROM AspNetUsers;
