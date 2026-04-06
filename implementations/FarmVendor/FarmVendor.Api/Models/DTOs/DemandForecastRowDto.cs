@@ -5,6 +5,7 @@ public class DemandForecastRowDto
     public int DemandForecastId { get; set; }
     public string VendorId { get; set; } = "";
     public int ProductId { get; set; }
+    public string? VendorName { get; set; }
     public string ProductName { get; set; } = "";
     public DateTime ForecastDate { get; set; }
     public decimal ForecastQty { get; set; }

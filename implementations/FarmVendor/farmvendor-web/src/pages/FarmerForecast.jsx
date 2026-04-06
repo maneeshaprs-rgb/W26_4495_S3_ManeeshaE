@@ -10,6 +10,7 @@ import {
   getForecastProducts,
 } from "../assets/forecastApi";
 import ForecastLineChart from "../assets/components/ForecastLineChart";
+import MultiVendorForecastLineChart from "../assets/components/MultiVendorForecastLineChart";
 import FarmerSidebar from "../assets/components/FarmerSidebar";
 
 export default function FarmerAnalytics() {
@@ -34,7 +35,6 @@ export default function FarmerAnalytics() {
   const [productSearch, setProductSearch] = useState("");
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [bootstrappedDefaults, setBootstrappedDefaults] = useState(false);
 
   const [form, setForm] = useState({
     forecastDate: new Date().toISOString().slice(0, 10),
@@ -51,6 +51,11 @@ export default function FarmerAnalytics() {
     forecastDate: new Date().toISOString().slice(0, 10),
   });
 
+  //for multi line charts
+  const [selectedVendorIds, setSelectedVendorIds] = useState([]);
+  const [multiVendorChartRows, setMultiVendorChartRows] = useState([]);
+  const [loadingMultiChart, setLoadingMultiChart] = useState(false);
+
   const logout = () => {
     localStorage.clear();
     navigate("/login");
@@ -62,25 +67,6 @@ export default function FarmerAnalytics() {
       setModels(data);
     } catch {
       setModels([]);
-    }
-  };
-
-  const loadForecastRows = async (forecastDateArg, modelNameArg) => {
-    setLoadingRows(true);
-    setError("");
-    try {
-      const data = await getForecasts(
-        {
-          forecastDate: forecastDateArg || form.forecastDate,
-          modelName: modelNameArg || form.modelName,
-        },
-        token
-      );
-      setRows(data);
-    } catch (e) {
-      setError(e?.message || "Failed to load forecasts");
-    } finally {
-      setLoadingRows(false);
     }
   };
 
@@ -99,6 +85,88 @@ export default function FarmerAnalytics() {
       setProducts(data);
     } catch {
       setProducts([]);
+    }
+  };
+
+  const loadChart = async (override = null) => {
+    const payload = override || chartForm;
+
+    setError("");
+    setLoadingChart(true);
+    setChartData([]);
+
+    if (!payload.vendorId || !payload.productId) {
+      setLoadingChart(false);
+      return;
+    }
+
+    try {
+      const data = await getForecastChartData(
+        {
+          vendorId: payload.vendorId,
+          productId: Number(payload.productId),
+          forecastDate: payload.forecastDate,
+          modelName: "MLNET_SSA",
+        },
+        token
+      );
+      setChartData(data);
+    } catch (e) {
+      setError(e?.message || "Failed to load chart");
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
+  const applyFirstValidForecastRowToChart = (forecastRows) => {
+    if (!forecastRows || forecastRows.length === 0) return;
+
+    const first = forecastRows[0];
+
+    if (!first?.vendorId || !first?.productId || !first?.forecastDate) return;
+
+    const nextChartForm = {
+      vendorId: first.vendorId,
+      productId: String(first.productId),
+      forecastDate: new Date(first.forecastDate).toISOString().slice(0, 10),
+    };
+
+    setChartForm(nextChartForm);
+    setForm((prev) => ({
+      ...prev,
+      vendorId: first.vendorId,
+      forecastDate: new Date(first.forecastDate).toISOString().slice(0, 10),
+    }));
+
+    loadChart(nextChartForm);
+  };
+
+  const loadForecastRows = async (forecastDateArg, modelNameArg) => {
+    setLoadingRows(true);
+    setError("");
+    try {
+      const requestedDate = forecastDateArg || form.forecastDate;
+      const requestedModel = modelNameArg || form.modelName;
+
+      const data = await getForecasts(
+        {
+          forecastDate: requestedDate,
+          modelName: requestedModel,
+        },
+        token
+      );
+
+      setRows(data);
+
+      if (requestedModel === "MLNET_SSA" && data.length > 0) {
+        applyFirstValidForecastRowToChart(data);
+      } else if (data.length === 0) {
+        setChartData([]);
+      }
+    } catch (e) {
+      setError(e?.message || "Failed to load forecasts");
+    } finally {
+      setLoadingRows(false);
     }
   };
 
@@ -132,14 +200,6 @@ export default function FarmerAnalytics() {
 
       await loadModels();
       await loadForecastRows(form.forecastDate, form.modelName);
-
-      if (chartForm.vendorId && chartForm.productId) {
-        await loadChart({
-          vendorId: chartForm.vendorId,
-          productId: chartForm.productId,
-          forecastDate: form.forecastDate,
-        });
-      }
     } catch (e) {
       setError(e?.message || "Failed to generate forecasts");
     } finally {
@@ -147,35 +207,62 @@ export default function FarmerAnalytics() {
     }
   };
 
-  const loadChart = async (override = null) => {
-    const payload = override || chartForm;
+  const escapeCsv = (value) => {
+    if (value === null || value === undefined) return "";
+    const str = String(value);
+    if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
 
-    setError("");
-    setLoadingChart(true);
-    setChartData([]);
-
-    if (!payload.vendorId || !payload.productId) {
-      setError("Please select vendor and product.");
-      setLoadingChart(false);
+  const exportForecastResultsCsv = () => {
+    if (!rows || rows.length === 0) {
+      setError("No forecast rows available to export.");
       return;
     }
 
-    try {
-      const data = await getForecastChartData(
-        {
-          vendorId: payload.vendorId,
-          productId: Number(payload.productId),
-          forecastDate: payload.forecastDate,
-          modelName: "MLNET_SSA",
-        },
-        token
-      );
-      setChartData(data);
-    } catch (e) {
-      setError(e?.message || "Failed to load chart");
-    } finally {
-      setLoadingChart(false);
-    }
+    const header = [
+      
+      "Vendor",
+      "Product",
+      "Forecast Date",
+      "Qty",
+      "Model",
+      "Lookback",
+      "Created At",
+    ];
+
+    const csvRows = rows.map((r) => [
+      
+      r.vendorName || r.vendorId,
+      r.productName,
+      new Date(r.forecastDate).toISOString().slice(0, 10),
+      r.forecastQty,
+      r.modelName,
+      r.lookbackPeriods ?? "",
+      new Date(r.createdAt).toISOString().slice(0, 10),
+    ]);
+
+    const csvContent = [
+      header.map(escapeCsv).join(","),
+      ...csvRows.map((row) => row.map(escapeCsv).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const safeDate = (form.forecastDate || new Date().toISOString().slice(0, 10)).replaceAll("/", "-");
+    const safeModel = (form.modelName || "forecast").replaceAll(" ", "_");
+    const fileName = `forecast_results_${safeDate}_${safeModel}.csv`;
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -186,9 +273,9 @@ export default function FarmerAnalytics() {
 
     const run = async () => {
       await loadModels();
-      await loadForecastRows(form.forecastDate, "MLNET_SSA");
       await loadVendors();
       await loadProducts();
+      await loadForecastRows(form.forecastDate, "MLNET_SSA");
     };
 
     run();
@@ -210,42 +297,24 @@ export default function FarmerAnalytics() {
   }, [productSearch]);
 
   useEffect(() => {
-    if (!bootstrappedDefaults && vendors.length > 0 && products.length > 0) {
-      const defaultVendorId = vendors[0]?.id || "";
-      const defaultProductId = products[0]?.productId || "";
-      const today = new Date().toISOString().slice(0, 10);
-
-      setForm((prev) => ({
-        ...prev,
-        vendorId: defaultVendorId,
-        forecastDate: today,
-        modelName: "MovingAverage",
-        horizon: 7,
-        granularity: "Daily",
-      }));
-
-      setChartForm({
-        vendorId: defaultVendorId,
-        productId: String(defaultProductId),
-        forecastDate: today,
-      });
-
-      setBootstrappedDefaults(true);
-    }
-  }, [vendors, products, bootstrappedDefaults]);
-
-  useEffect(() => {
-    if (bootstrappedDefaults && chartForm.vendorId && chartForm.productId) {
+    if (chartForm.vendorId && chartForm.productId && chartForm.forecastDate) {
       loadChart();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bootstrappedDefaults, chartForm.vendorId, chartForm.productId, chartForm.forecastDate]);
+  }, [chartForm.vendorId, chartForm.productId, chartForm.forecastDate]);
+
+
+  
 
   const selectedVendorName =
-    vendors.find((v) => String(v.id) === String(chartForm.vendorId))?.displayName || "-";
+    vendors.find((v) => String(v.id) === String(chartForm.vendorId))?.displayName ||
+    rows.find((r) => String(r.vendorId) === String(chartForm.vendorId))?.vendorId ||
+    "-";
 
   const selectedProductName =
-    products.find((p) => String(p.productId) === String(chartForm.productId))?.name || "-";
+    products.find((p) => String(p.productId) === String(chartForm.productId))?.name ||
+    rows.find((r) => String(r.productId) === String(chartForm.productId))?.productName ||
+    "-";
 
   const summary = useMemo(() => {
     if (!chartData || chartData.length === 0) {
@@ -283,6 +352,115 @@ export default function FarmerAnalytics() {
       trend,
     };
   }, [chartData]);
+
+
+  //helper for top 4 vendors from forecast list
+  const uniqueTopVendorsFromRows = useMemo(() => {
+  const seen = new Set();
+  const top = [];
+
+  for (const r of rows) {
+    if (!seen.has(r.vendorId)) {
+      seen.add(r.vendorId);
+      top.push({
+        vendorId: r.vendorId,
+        vendorName:
+          r.vendorName ||
+          vendors.find((v) => String(v.id) === String(r.vendorId))?.displayName ||
+          r.vendorId,
+      });
+    }
+    if (top.length === 4) break;
+  }
+
+  return top;
+}, [rows, vendors]);
+
+//Auto select top 4 vendors once rows load
+  useEffect(() => {
+    if (rows.length > 0 && selectedVendorIds.length === 0) {
+      const defaults = uniqueTopVendorsFromRows.slice(0, 4).map((v) => v.vendorId);
+      setSelectedVendorIds(defaults);
+    }
+  }, [rows, uniqueTopVendorsFromRows, selectedVendorIds.length]);
+
+
+
+//function to load 4 vendor chart
+const loadMultiVendorChart = async (vendorIdsOverride = null) => {
+  const vendorIds = vendorIdsOverride || selectedVendorIds;
+
+  if (!vendorIds || vendorIds.length === 0 || !chartForm.productId || !chartForm.forecastDate) {
+    setMultiVendorChartRows([]);
+    return;
+  }
+
+  setLoadingMultiChart(true);
+  setError("");
+
+  try {
+    const limitedVendorIds = vendorIds.slice(0, 4);
+
+    const responses = await Promise.all(
+      limitedVendorIds.map(async (vendorId) => {
+        const points = await getForecastChartData(
+          {
+            vendorId,
+            productId: Number(chartForm.productId),
+            forecastDate: chartForm.forecastDate,
+            modelName: "MLNET_SSA",
+          },
+          token
+        );
+
+        return { vendorId, points };
+      })
+    );
+
+    const vendorNameMap = new Map(
+      vendors.map((v) => [String(v.id), v.displayName || v.email || v.id])
+    );
+
+    const mergedMap = {};
+
+    responses.forEach(({ vendorId, points }) => {
+      const vendorName = vendorNameMap.get(String(vendorId)) || vendorId;
+
+      points
+        .filter((p) => p.series === "Forecast")
+        .forEach((p) => {
+          if (!mergedMap[p.date]) {
+            mergedMap[p.date] = { date: p.date };
+          }
+
+          mergedMap[p.date][vendorName] = Number(p.quantity);
+        });
+    });
+
+    const mergedRows = Object.values(mergedMap).sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
+
+    setMultiVendorChartRows(mergedRows);
+  } catch (e) {
+    setError(e?.message || "Failed to load multi-vendor chart");
+    setMultiVendorChartRows([]);
+  } finally {
+    setLoadingMultiChart(false);
+  }
+};
+
+//auto load 4 vendor graphs when selection change
+useEffect(() => {
+  if (
+    selectedVendorIds.length > 0 &&
+    chartForm.productId &&
+    chartForm.forecastDate
+  ) {
+    loadMultiVendorChart();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [selectedVendorIds, chartForm.productId, chartForm.forecastDate, vendors]);
 
   return (
     <div className="dashboard-page">
@@ -332,23 +510,68 @@ export default function FarmerAnalytics() {
               <div className="card">
                 <div className="card-header">
                   <h2>Forecast Chart</h2>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setAdvancedOpen((prev) => !prev)}
-                  >
-                    {advancedOpen ? "Hide Advanced Settings" : "Show Advanced Settings"}
-                  </button>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={exportForecastResultsCsv}
+                      disabled={rows.length === 0}
+                    >
+                      Export Results
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setAdvancedOpen((prev) => !prev)}
+                    >
+                      {advancedOpen ? "Hide Advanced Settings" : "Show Advanced Settings"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="card-body">
-                  <div className="forecast-selection-summary">
-                    <span><b>Vendor:</b> {selectedVendorName}</span>
-                    <span><b>Product:</b> {selectedProductName}</span>
-                    <span><b>Date:</b> {chartForm.forecastDate}</span>
-                    <span><b>Model:</b> MLNET_SSA</span>
-                    <span><b>Horizon:</b> 7</span>
-                  </div>
+                  <div className="forecast-chart-banner">
+                    <div className="forecast-chart-banner-main">
+                      <div className="forecast-chart-banner-title">
+                        {selectedProductName} Forecast
+                      </div>
+                      <div className="forecast-chart-banner-sub">
+                        Vendor: <strong>{selectedVendorName}</strong>
+                      </div>
+                    </div>
 
+                    <div className="forecast-chart-banner-meta">
+                      <span><b>Date:</b> {chartForm.forecastDate}</span>
+                      <span><b>Model:</b> MLNET_SSA</span>
+                      <span><b>Horizon:</b> 7 Days</span>
+                    </div>
+                  </div>
+                  <div className="forecast-multi-vendor-panel">
+                    <div className="forecast-multi-vendor-title">
+                      Compare Forecast for up to 4 Vendors
+                    </div>
+
+                    <label className="field">
+                      <span>Select Vendors (max 4)</span>
+                      <select
+                        multiple
+                        value={selectedVendorIds}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value).slice(0, 4);
+                          setSelectedVendorIds(selected);
+                        }}
+                        style={{ minHeight: 120 }}
+                      >
+                        {vendors.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.displayName} ({v.email})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="auth-hint" style={{ marginTop: 8 }}>
+                      Default vendors are selected from the top visible forecast rows.
+                    </div>
+                  </div>
                   {advancedOpen && (
                     <div className="forecast-advanced-panel">
                       <div className="forecast-advanced-grid">
@@ -506,38 +729,24 @@ export default function FarmerAnalytics() {
                   )}
 
                   <div style={{ marginTop: 20 }}>
-                    {loadingChart ? (
-                      <div className="auth-hint">Loading chart...</div>
-                    ) : chartData.length > 0 ? (
-                      <ForecastLineChart chartPoints={chartData} />
+                    {loadingMultiChart ? (
+                      <div className="auth-hint">Loading multi-vendor chart...</div>
+                    ) : multiVendorChartRows.length > 0 ? (
+                      <MultiVendorForecastLineChart
+                        chartRows={multiVendorChartRows}
+                        vendorNames={selectedVendorIds
+                          .map((id) => vendors.find((v) => String(v.id) === String(id))?.displayName)
+                          .filter(Boolean)}
+                      />
                     ) : (
-                      <div className="auth-hint">No chart data available.</div>
+                      <div className="auth-hint">No multi-vendor chart data available.</div>
                     )}
                   </div>
                 </div>
               </div>
             </section>
 
-            <section style={{ marginTop: 14 }}>
-              <div className="card">
-                <div className="card-header">
-                  <h2>Available Model Names</h2>
-                </div>
-                <div className="card-body">
-                  {models.length === 0 ? (
-                    <div>No models found yet.</div>
-                  ) : (
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {models.map((m) => (
-                        <span key={m} className="badge badge-green">
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
+            
 
             <section style={{ marginTop: 14 }}>
               <div className="card">
@@ -555,7 +764,7 @@ export default function FarmerAnalytics() {
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>ID</th>
+                        
                         <th>Vendor</th>
                         <th>Product</th>
                         <th>Forecast Date</th>
@@ -568,13 +777,13 @@ export default function FarmerAnalytics() {
                     <tbody>
                       {rows.length === 0 ? (
                         <tr>
-                          <td colSpan="8">No forecast rows found.</td>
+                          <td colSpan="7">No forecast rows found.</td>
                         </tr>
                       ) : (
                         rows.map((r) => (
                           <tr key={r.demandForecastId}>
-                            <td>{r.demandForecastId}</td>
-                            <td>{r.vendorId}</td>
+                            
+                            <td>{r.vendorName || r.vendorId}</td>
                             <td>{r.productName}</td>
                             <td>{new Date(r.forecastDate).toISOString().slice(0, 10)}</td>
                             <td>{r.forecastQty}</td>

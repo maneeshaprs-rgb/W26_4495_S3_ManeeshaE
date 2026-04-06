@@ -51,12 +51,12 @@ export default function FarmerSidebar() {
           Dispatch
         </div>
 
-        <div
+        {/* <div
           className={`sidebar-link ${isActive("/farmer/analytics") ? "active" : ""}`}
           onClick={() => navigate("/farmer/analytics")}
         >
           Analytics
-        </div>
+        </div> */}
 
         <div
           className={`sidebar-link ${isActive("/farmer/forecasts") ? "active" : ""}`}

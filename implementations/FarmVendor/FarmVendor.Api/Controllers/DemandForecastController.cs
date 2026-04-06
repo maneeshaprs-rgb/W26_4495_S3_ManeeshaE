@@ -79,6 +79,7 @@ public class DemandForecastController : ControllerBase
         var query = _db.DemandForecast
             .AsNoTracking()
             .Include(f => f.Product)
+            .Include(f => f.Vendor)
             .AsQueryable();
 
         if (forecastDate.HasValue)
@@ -90,12 +91,14 @@ public class DemandForecastController : ControllerBase
             query = query.Where(f => f.ModelName.ToLower() == normalizedModelName);
         }
 
+        //use for projection
         var rows = await query
             .OrderByDescending(f => f.CreatedAt)
             .Select(f => new DemandForecastRowDto
             {
                 DemandForecastId = f.DemandForecastId,
                 VendorId = f.VendorId,
+                VendorName = f.Vendor.DisplayName,
                 ProductId = f.ProductId,
                 ProductName = f.Product.Name,
                 ForecastDate = f.ForecastDate,

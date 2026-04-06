@@ -51,12 +51,12 @@ export default function VendorSidebar() {
           Incoming
         </div>
 
-        <div
+        {/* <div
           className={`sidebar-link ${isActive("/vendor/analytics") ? "active" : ""}`}
           onClick={() => navigate("/vendor/analytics")}
         >
           Analytics
-        </div>
+        </div> */}
 
         <div
           className={`sidebar-link ${isActive("/vendor/forecasts") ? "active" : ""}`}
