@@ -180,7 +180,7 @@ export default function FarmerChat() {
                         >
                           <div><b>Conversation #{c.conversationId}</b></div>
                           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                            Vendor: {c.vendorId}
+                            Vendor: {c.otherUserDisplayName}
                           </div>
                         </button>
                       ))}

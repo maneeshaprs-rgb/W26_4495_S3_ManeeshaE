@@ -1,8 +1,8 @@
 using FarmVendor.Api.Data;
 using FarmVendor.Api.Models;
+using FarmVendor.Api.Models.DTOs;
 using FarmVendor.Api.Services.Forecasting;
 using Microsoft.EntityFrameworkCore;
-using FarmVendor.Api.Models.DTOs;
 
 namespace FarmVendor.Api.Services;
 
@@ -18,14 +18,57 @@ public class DemandForecastService
     }
 
     // =========================================================
-    // 1) MOVING AVERAGE FORECAST
+    // 0) GET ELIGIBLE FORECAST PAIRS FOR A LOGGED-IN FARMER
+    //    Only products available in farmer inventory
+    //    Only vendors who requested those products
     // =========================================================
-    public async Task<List<DemandForecast>> GenerateMovingAverageForecastsAsync(
+    public async Task<List<EligibleForecastPairDto>> GetEligiblePairsForFarmerAsync(string farmerId, DateTime forecastDate)
+    {
+        var availableProductIds = await _db.InventoryLot
+            .AsNoTracking()
+            .Where(i =>
+                i.FarmerId == farmerId &&
+                i.QuantityAvailable > 0 &&
+                i.Product.IsActive)
+            .Select(i => i.ProductId)
+            .Distinct()
+            .ToListAsync();
+
+        if (availableProductIds.Count == 0)
+            return new List<EligibleForecastPairDto>();
+
+        var eligiblePairs = await _db.DemandRequest
+            .AsNoTracking()
+            .Where(r =>
+                availableProductIds.Contains(r.ProductId) &&
+                r.CreatedAt < forecastDate)
+            .Select(r => new EligibleForecastPairDto
+            {
+                VendorId = r.VendorId,
+                ProductId = r.ProductId
+            })
+            .Distinct()
+            .ToListAsync();
+
+        return eligiblePairs;
+    }
+
+    // =========================================================
+    // 1) MOVING AVERAGE FORECAST
+    //    FILTERED FOR FARMER'S AVAILABLE PRODUCTS
+    // =========================================================
+    public async Task<List<DemandForecast>> GenerateMovingAverageForecastsForFarmerAsync(
+        string farmerId,
         DateTime forecastDate,
         int lookbackPeriods = 3)
     {
         if (lookbackPeriods <= 0)
             throw new ArgumentException("LookbackPeriods must be greater than 0.");
+
+        var eligiblePairs = await GetEligiblePairsForFarmerAsync(farmerId, forecastDate);
+
+        if (eligiblePairs.Count == 0)
+            return new List<DemandForecast>();
 
         var groupedRequests = await _db.DemandRequest
             .AsNoTracking()
@@ -43,10 +86,16 @@ public class DemandForecastService
             })
             .ToListAsync();
 
+        var eligibleSet = eligiblePairs
+            .Select(x => $"{x.VendorId}__{x.ProductId}")
+            .ToHashSet();
+
         var forecasts = new List<DemandForecast>();
 
         foreach (var group in groupedRequests)
         {
+            var key = $"{group.VendorId}__{group.ProductId}";
+            if (!eligibleSet.Contains(key)) continue;
             if (group.Requests.Count == 0) continue;
 
             var avgQty = group.Requests.Average();
@@ -68,40 +117,36 @@ public class DemandForecastService
 
     // =========================================================
     // 2) ML.NET FORECAST
+    //    FILTERED FOR FARMER'S AVAILABLE PRODUCTS
     // =========================================================
-    public async Task<List<DemandForecast>> GenerateMlForecastsAsync(
+    public async Task<List<DemandForecast>> GenerateMlForecastsForFarmerAsync(
+        string farmerId,
         DateTime forecastStartDate,
-        int horizon = 3,
+        int horizon = 7,
         string granularity = "Daily")
     {
         if (horizon <= 0)
             throw new ArgumentException("Horizon must be greater than 0.");
 
-        var requestGroups = await _db.DemandRequest
-            .AsNoTracking()
-            .Where(r => r.CreatedAt < forecastStartDate)
-            .GroupBy(r => new { r.VendorId, r.ProductId })
-            .Select(g => new
-            {
-                g.Key.VendorId,
-                g.Key.ProductId
-            })
-            .ToListAsync();
+        var eligiblePairs = await GetEligiblePairsForFarmerAsync(farmerId, forecastStartDate);
+
+        if (eligiblePairs.Count == 0)
+            return new List<DemandForecast>();
 
         var allForecasts = new List<DemandForecast>();
 
-        foreach (var group in requestGroups)
+        foreach (var pair in eligiblePairs)
         {
             var series = await LoadAggregatedDemandSeriesAsync(
-                group.ProductId,
-                group.VendorId,
+                pair.ProductId,
+                pair.VendorId,
                 forecastStartDate,
                 granularity);
 
-            if (series.Count < 5)
+            if (series.Count < 3)
             {
                 Console.WriteLine(
-                    $"Skipped ML forecast for Vendor={group.VendorId}, Product={group.ProductId}, Reason=Not enough history, SeriesCount={series.Count}");
+                    $"Skipped ML forecast for Vendor={pair.VendorId}, Product={pair.ProductId}, Reason=Not enough history, SeriesCount={series.Count}");
                 continue;
             }
 
@@ -110,22 +155,17 @@ public class DemandForecastService
                 .Select(x => (float)x.TotalQuantity)
                 .ToList();
 
-            ForecastTrainingResult mlResult;
-
             try
             {
                 var safeHorizon = Math.Min(horizon, Math.Max(1, orderedValues.Count / 2));
-
-                mlResult = _mlEngine.TrainAndForecast(orderedValues, safeHorizon);
+                var mlResult = _mlEngine.TrainAndForecast(orderedValues, safeHorizon);
 
                 if (mlResult.Forecast == null || mlResult.Forecast.Count == 0)
                 {
                     Console.WriteLine(
-                        $"ML forecast returned no results for Vendor={group.VendorId}, Product={group.ProductId}");
+                        $"ML forecast returned no results for Vendor={pair.VendorId}, Product={pair.ProductId}");
                     continue;
                 }
-
-                var lastHistoryDate = series.Max(x => x.PeriodDate);
 
                 for (int i = 0; i < mlResult.Forecast.Count; i++)
                 {
@@ -139,8 +179,8 @@ public class DemandForecastService
 
                     allForecasts.Add(new DemandForecast
                     {
-                        VendorId = group.VendorId,
-                        ProductId = group.ProductId,
+                        VendorId = pair.VendorId,
+                        ProductId = pair.ProductId,
                         ForecastDate = nextDate.Date,
                         ForecastQty = qty,
                         ModelName = "MLNET_SSA",
@@ -152,12 +192,11 @@ public class DemandForecastService
             catch (Exception ex)
             {
                 Console.WriteLine(
-                    $"ML forecast failed for Vendor={group.VendorId}, Product={group.ProductId}. Error={ex.Message}");
-                continue;
+                    $"ML forecast failed for Vendor={pair.VendorId}, Product={pair.ProductId}. Error={ex.Message}");
             }
         }
 
-        Console.WriteLine($"Total ML forecasts generated: {allForecasts.Count}");
+        Console.WriteLine($"Total ML forecasts generated for farmer {farmerId}: {allForecasts.Count}");
         return allForecasts;
     }
 
@@ -187,69 +226,32 @@ public class DemandForecastService
     }
 
     // =========================================================
-    // 4) OPTIONAL COMPARISON METHOD
+    // 4) FORECAST ROWS FOR UI
     // =========================================================
-    public async Task<object?> CompareForecastForPairAsync(
-        string vendorId,
-        int productId,
-        DateTime forecastDate,
-        int movingAverageLookback = 3)
+    public async Task<List<DemandForecastRowDto>> GetForecastRowsAsync(DateTime forecastDate, string modelName)
     {
-        var recentRequests = await _db.DemandRequest
+        var rows = await _db.DemandForecast
             .AsNoTracking()
-            .Where(r => r.VendorId == vendorId &&
-                        r.ProductId == productId &&
-                        r.CreatedAt < forecastDate)
-            .OrderByDescending(r => r.CreatedAt)
+            .Include(f => f.Product)
+            .Include(f => f.Vendor)
+            .Where(f => f.ForecastDate == forecastDate.Date && f.ModelName == modelName)
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => new DemandForecastRowDto
+            {
+                DemandForecastId = f.DemandForecastId,
+                VendorId = f.VendorId,
+                VendorName = f.Vendor.DisplayName,
+                ProductId = f.ProductId,
+                ProductName = f.Product.Name,
+                ForecastDate = f.ForecastDate,
+                ForecastQty = f.ForecastQty,
+                ModelName = f.ModelName,
+                LookbackPeriods = f.LookbackPeriods,
+                CreatedAt = f.CreatedAt
+            })
             .ToListAsync();
 
-        if (recentRequests.Count < 3)
-            return null;
-
-        var movingAverage = recentRequests
-            .Take(movingAverageLookback)
-            .Average(x => x.QuantityRequested);
-
-        var dailySeries = await LoadAggregatedDemandSeriesAsync(
-            productId,
-            vendorId,
-            forecastDate,
-            "Daily");
-
-        decimal mlPrediction = 0;
-
-        if (dailySeries.Count >= 5)
-        {
-            try
-            {
-                var orderedValues = dailySeries
-                    .OrderBy(x => x.PeriodDate)
-                    .Select(x => (float)x.TotalQuantity)
-                    .ToList();
-
-                var mlResult = _mlEngine.TrainAndForecast(orderedValues, 1);
-
-                if (mlResult.Forecast.Count > 0)
-                {
-                    mlPrediction = Math.Round(
-                        Convert.ToDecimal(Math.Max(0, mlResult.Forecast[0])), 2);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(
-                    $"Compare forecast ML failed for Vendor={vendorId}, Product={productId}. Error={ex.Message}");
-            }
-        }
-
-        return new
-        {
-            VendorId = vendorId,
-            ProductId = productId,
-            ForecastDate = forecastDate.Date,
-            MovingAverageForecast = Math.Round(movingAverage, 2),
-            MlNetForecast = mlPrediction
-        };
+        return rows;
     }
 
     // =========================================================
@@ -276,9 +278,7 @@ public class DemandForecastService
             })
             .ToListAsync();
 
-        history = history
-            .OrderBy(x => x.Date)
-            .ToList();
+        history = history.OrderBy(x => x.Date).ToList();
 
         var forecasts = await _db.DemandForecast
             .AsNoTracking()
@@ -300,7 +300,81 @@ public class DemandForecastService
     }
 
     // =========================================================
-    // 6) PRIVATE HELPER FOR DAILY / WEEKLY SERIES
+    // 6) FILTERED VENDOR OPTIONS FOR FARMER
+    // =========================================================
+    public async Task<List<ForecastVendorOptionDto>> GetForecastVendorsForFarmerAsync(string farmerId, string? search = null)
+    {
+        var availableProductIds = await _db.InventoryLot
+            .AsNoTracking()
+            .Where(i =>
+                i.FarmerId == farmerId &&
+                i.QuantityAvailable > 0 &&
+                i.Product.IsActive)
+            .Select(i => i.ProductId)
+            .Distinct()
+            .ToListAsync();
+
+        if (availableProductIds.Count == 0)
+            return new List<ForecastVendorOptionDto>();
+
+        var query = _db.DemandRequest
+            .AsNoTracking()
+            .Where(r => availableProductIds.Contains(r.ProductId))
+            .Select(r => r.Vendor)
+            .Distinct();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(v =>
+                (v.DisplayName != null && v.DisplayName.ToLower().Contains(term)) ||
+                (v.Email != null && v.Email.ToLower().Contains(term)));
+        }
+
+        return await query
+            .OrderBy(v => v.DisplayName)
+            .Select(v => new ForecastVendorOptionDto
+            {
+                Id = v.Id,
+                DisplayName = v.DisplayName ?? "",
+                Email = v.Email ?? ""
+            })
+            .ToListAsync();
+    }
+
+    // =========================================================
+    // 7) FILTERED PRODUCT OPTIONS FOR FARMER
+    // =========================================================
+    public async Task<List<ForecastProductOptionDto>> GetForecastProductsForFarmerAsync(string farmerId, string? search = null)
+    {
+        var query = _db.InventoryLot
+            .AsNoTracking()
+            .Where(i =>
+                i.FarmerId == farmerId &&
+                i.QuantityAvailable > 0 &&
+                i.Product.IsActive)
+            .Select(i => i.Product)
+            .Distinct();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(term));
+        }
+
+        return await query
+            .OrderBy(p => p.Name)
+            .Select(p => new ForecastProductOptionDto
+            {
+                ProductId = p.ProductId,
+                Name = p.Name,
+                DefaultUnit = p.DefaultUnit
+            })
+            .ToListAsync();
+    }
+
+    // =========================================================
+    // 8) PRIVATE HELPER FOR DAILY / WEEKLY SERIES
     // =========================================================
     private async Task<List<AggregatedDemandPoint>> LoadAggregatedDemandSeriesAsync(
         int productId,

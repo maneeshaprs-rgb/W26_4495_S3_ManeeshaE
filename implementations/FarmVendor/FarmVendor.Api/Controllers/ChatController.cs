@@ -134,6 +134,47 @@ public class ChatController : ControllerBase
         }));
     }
 
+// [HttpGet("conversations")]
+// public async Task<IActionResult> GetMyConversations()
+// {
+//     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+//         ?? User.FindFirstValue("sub");
+
+//     var role = User.FindFirstValue(ClaimTypes.Role);
+
+//     if (string.IsNullOrWhiteSpace(userId))
+//         return Unauthorized();
+
+//     var conversations = await _db.Conversations
+//         .Where(c => c.FarmerId == userId || c.VendorId == userId)
+//         .Select(c => new
+//         {
+//             c.ConversationId,
+//             c.CreatedAt,
+//             OtherUserId = c.FarmerId == userId ? c.VendorId : c.FarmerId
+//         })
+//         .ToListAsync();
+
+//     var result = await (
+//         from c in conversations
+//         join u in _db.Users on c.OtherUserId equals u.Id
+//         select new ConversationRowDto
+//         {
+//             ConversationId = c.ConversationId,
+//             CreatedAt = c.CreatedAt,
+//             OtherUserId = u.Id,
+//             OtherUserDisplayName = u.DisplayName ?? u.UserName ?? "",
+//             OtherUserRole = _db.UserRoles
+//                 .Where(ur => ur.UserId == u.Id)
+//                 .Join(_db.Roles,
+//                       ur => ur.RoleId,
+//                       r => r.Id,
+//                       (ur, r) => r.Name)
+//                 .FirstOrDefault() ?? ""
+//         }).ToListAsync();
+
+//     return Ok(result);
+// }
     [HttpGet("messages/{conversationId:int}")]
     public async Task<IActionResult> GetMessages(int conversationId)
     {

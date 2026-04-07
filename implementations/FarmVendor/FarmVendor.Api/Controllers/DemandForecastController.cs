@@ -1,9 +1,8 @@
-using FarmVendor.Api.Data;
 using FarmVendor.Api.Models.DTOs;
 using FarmVendor.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace FarmVendor.Api.Controllers;
 
@@ -12,33 +11,39 @@ namespace FarmVendor.Api.Controllers;
 [Authorize]
 public class DemandForecastController : ControllerBase
 {
-    private readonly AppDbContext _db;
     private readonly DemandForecastService _forecastService;
 
-    public DemandForecastController(AppDbContext db, DemandForecastService forecastService)
+    public DemandForecastController(DemandForecastService forecastService)
     {
-        _db = db;
         _forecastService = forecastService;
     }
 
+    private string GetUserId()
+        => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
     // POST: /api/forecasts/generate
-     [HttpPost("generate")]
+    [HttpPost("generate")]
     public async Task<IActionResult> GenerateForecasts([FromBody] GenerateForecastDto dto)
     {
+        var farmerId = GetUserId();
+        if (string.IsNullOrWhiteSpace(farmerId))
+            return Unauthorized();
+
         if (dto.ForecastDate == default)
             return BadRequest("ForecastDate is required.");
 
         if (string.IsNullOrWhiteSpace(dto.ModelName))
             dto.ModelName = "MLNET_SSA";
 
-        List<Models.DemandForecast> forecasts;
+        List<FarmVendor.Api.Models.DemandForecast> forecasts;
 
         if (dto.ModelName.Equals("MovingAverage", StringComparison.OrdinalIgnoreCase))
         {
             if (dto.LookbackPeriods <= 0)
                 return BadRequest("LookbackPeriods must be greater than 0.");
 
-            forecasts = await _forecastService.GenerateMovingAverageForecastsAsync(
+            forecasts = await _forecastService.GenerateMovingAverageForecastsForFarmerAsync(
+                farmerId,
                 dto.ForecastDate,
                 dto.LookbackPeriods
             );
@@ -48,7 +53,8 @@ public class DemandForecastController : ControllerBase
             if (dto.Horizon <= 0)
                 return BadRequest("Horizon must be greater than 0.");
 
-            forecasts = await _forecastService.GenerateMlForecastsAsync(
+            forecasts = await _forecastService.GenerateMlForecastsForFarmerAsync(
+                farmerId,
                 dto.ForecastDate,
                 dto.Horizon,
                 dto.Granularity ?? "Daily"
@@ -59,116 +65,33 @@ public class DemandForecastController : ControllerBase
             return BadRequest("Unsupported modelName. Use 'MovingAverage' or 'MLNET_SSA'.");
         }
 
-        var count = await _forecastService.SaveForecastsAsync(forecasts);
+        var saved = await _forecastService.SaveForecastsAsync(forecasts);
 
         return Ok(new
         {
-            Message = "Forecast generation completed.",
-            ModelName = dto.ModelName,
-            ForecastCount = forecasts.Count,
-            SavedRows = count
+            message = "Forecast generation completed.",
+            modelName = dto.ModelName,
+            forecastCount = forecasts.Count,
+            savedRows = saved
         });
     }
 
-    // GET: /api/forecasts?forecastDate=2026-03-10&modelName=MLNET_SSA
+    // GET: /api/forecasts?forecastDate=2026-04-05&modelName=MLNET_SSA
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DemandForecastRowDto>>> GetForecasts(
         [FromQuery] DateTime? forecastDate,
         [FromQuery] string? modelName)
     {
-        var query = _db.DemandForecast
-            .AsNoTracking()
-            .Include(f => f.Product)
-            .Include(f => f.Vendor)
-            .AsQueryable();
+        var requestedDate = forecastDate ?? DateTime.UtcNow.Date;
+        var requestedModel = string.IsNullOrWhiteSpace(modelName)
+            ? "MLNET_SSA"
+            : modelName.Trim();
 
-        if (forecastDate.HasValue)
-            query = query.Where(f => f.ForecastDate.Date == forecastDate.Value.Date);
-
-        if (!string.IsNullOrWhiteSpace(modelName))
-        {
-            var normalizedModelName = modelName.Trim().ToLower();
-            query = query.Where(f => f.ModelName.ToLower() == normalizedModelName);
-        }
-
-        //use for projection
-        var rows = await query
-            .OrderByDescending(f => f.CreatedAt)
-            .Select(f => new DemandForecastRowDto
-            {
-                DemandForecastId = f.DemandForecastId,
-                VendorId = f.VendorId,
-                VendorName = f.Vendor.DisplayName,
-                ProductId = f.ProductId,
-                ProductName = f.Product.Name,
-                ForecastDate = f.ForecastDate,
-                ForecastQty = f.ForecastQty,
-                ModelName = f.ModelName,
-                LookbackPeriods = f.LookbackPeriods,
-                CreatedAt = f.CreatedAt
-            })
-            .ToListAsync();
-
+        var rows = await _forecastService.GetForecastRowsAsync(requestedDate, requestedModel);
         return Ok(rows);
     }
 
-    // GET: /api/forecasts/compare?vendorId=abc&productId=1&forecastDate=2026-03-10
-    [HttpGet("compare")]
-    public async Task<IActionResult> CompareForecasts(
-        [FromQuery] string vendorId,
-        [FromQuery] int productId,
-        [FromQuery] DateTime forecastDate,
-        [FromQuery] int lookbackPeriods = 3)
-    {
-        if (string.IsNullOrWhiteSpace(vendorId))
-            return BadRequest("VendorId is required.");
-
-        var result = await _forecastService.CompareForecastForPairAsync(
-            vendorId,
-            productId,
-            forecastDate,
-            lookbackPeriods);
-
-        if (result == null)
-            return NotFound("Not enough historical data to compare forecasts.");
-
-        return Ok(result);
-    }
-
-    //check what model names actually exist in the table
-    [HttpGet("models")]
-    public async Task<IActionResult> GetModelNames()
-    {
-        var models = await _db.DemandForecast
-            .AsNoTracking()
-            .Select(f => f.ModelName)
-            .Distinct()
-            .ToListAsync();
-
-        return Ok(models);
-    }
-
-
-    [HttpGet("debug-history")]
-    public async Task<IActionResult> DebugHistory()
-    {
-        var data = await _db.DemandRequest
-            .AsNoTracking()
-            .GroupBy(r => new { r.VendorId, r.ProductId })
-            .Select(g => new
-            {
-                g.Key.VendorId,
-                g.Key.ProductId,
-                Count = g.Count(),
-                MinDate = g.Min(x => x.CreatedAt),
-                MaxDate = g.Max(x => x.CreatedAt)
-            })
-            .OrderByDescending(x => x.Count)
-            .ToListAsync();
-
-        return Ok(data);
-    }
-    //end point for charts
+    // GET: /api/forecasts/chart?vendorId=abc&productId=1&forecastDate=2026-04-05&modelName=MLNET_SSA
     [HttpGet("chart")]
     public async Task<IActionResult> GetForecastChartData(
         [FromQuery] string vendorId,
@@ -179,6 +102,12 @@ public class DemandForecastController : ControllerBase
         if (string.IsNullOrWhiteSpace(vendorId))
             return BadRequest("VendorId is required.");
 
+        if (productId <= 0)
+            return BadRequest("ProductId is required.");
+
+        if (forecastDate == default)
+            return BadRequest("ForecastDate is required.");
+
         var data = await _forecastService.GetForecastChartDataAsync(
             vendorId,
             productId,
@@ -188,65 +117,54 @@ public class DemandForecastController : ControllerBase
         return Ok(data);
     }
 
-    //end point for forecasting =>selecting vendors via dropdown
+    // GET: /api/forecasts/vendors?search=vendor
+    // Only vendors relevant to logged-in farmer's available products
     [HttpGet("vendors")]
     public async Task<IActionResult> GetVendors([FromQuery] string? search = null)
     {
-        var query = _db.Users.AsNoTracking();
+        var farmerId = GetUserId();
+        if (string.IsNullOrWhiteSpace(farmerId))
+            return Unauthorized();
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim().ToLower();
-            query = query.Where(u =>
-                (u.DisplayName != null && u.DisplayName.ToLower().Contains(term)) ||
-                (u.Email != null && u.Email.ToLower().Contains(term)));
-        }
-
-        var vendors = await query
-            .Join(_db.UserRoles,
-                u => u.Id,
-                ur => ur.UserId,
-                (u, ur) => new { u, ur })
-            .Join(_db.Roles,
-                x => x.ur.RoleId,
-                r => r.Id,
-                (x, r) => new { x.u, RoleName = r.Name })
-            .Where(x => x.RoleName == "Vendor")
-            .Select(x => new
-            {
-                id = x.u.Id,
-                displayName = x.u.DisplayName,
-                email = x.u.Email
-            })
-            .Distinct()
-            .OrderBy(x => x.displayName)
-            .ToListAsync();
-
+        var vendors = await _forecastService.GetForecastVendorsForFarmerAsync(farmerId, search);
         return Ok(vendors);
     }
 
-    //end point for forecasting =>selecting products via dropdown
+    // GET: /api/forecasts/products?search=milk
+    // Only products available in logged-in farmer inventory
     [HttpGet("products")]
     public async Task<IActionResult> GetProducts([FromQuery] string? search = null)
     {
-        var query = _db.Product.AsNoTracking();
+        var farmerId = GetUserId();
+        if (string.IsNullOrWhiteSpace(farmerId))
+            return Unauthorized();
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim().ToLower();
-            query = query.Where(p => p.Name.ToLower().Contains(term));
-        }
-
-        var products = await query
-            .OrderBy(p => p.Name)
-            .Select(p => new
-            {
-                productId = p.ProductId,
-                name = p.Name,
-                defaultUnit = p.DefaultUnit
-            })
-            .ToListAsync();
-
+        var products = await _forecastService.GetForecastProductsForFarmerAsync(farmerId, search);
         return Ok(products);
+    }
+
+    // GET: /api/forecasts/models
+    [HttpGet("models")]
+    public IActionResult GetModelNames()
+    {
+        return Ok(new[] { "MLNET_SSA", "MovingAverage" });
+    }
+
+    // GET: /api/forecasts/debug-history
+    [HttpGet("debug-history")]
+    public async Task<IActionResult> DebugHistory()
+    {
+        var farmerId = GetUserId();
+        if (string.IsNullOrWhiteSpace(farmerId))
+            return Unauthorized();
+
+        var pairs = await _forecastService.GetEligiblePairsForFarmerAsync(farmerId, DateTime.UtcNow);
+
+        return Ok(new
+        {
+            farmerId,
+            eligiblePairCount = pairs.Count,
+            pairs
+        });
     }
 }

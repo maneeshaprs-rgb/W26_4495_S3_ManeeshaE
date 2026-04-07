@@ -3,3 +3,6 @@ GO
 
 SELECT Id,Email, UserName
 FROM AspNetUsers;
+
+SELECT *
+FROM AspNetUsers;
