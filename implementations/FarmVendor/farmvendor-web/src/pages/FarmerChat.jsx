@@ -178,9 +178,9 @@ export default function FarmerChat() {
                           }}
                           onClick={() => setSelectedConversationId(c.conversationId)}
                         >
-                          <div><b>Conversation #{c.conversationId}</b></div>
+                          {/* <div><b>Conversation #{c.conversationId}</b></div> */}
                           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                            Vendor: {c.otherUserDisplayName}
+                            Vendor: {c.vendorName || c.vendorId}
                           </div>
                         </button>
                       ))}

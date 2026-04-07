@@ -196,9 +196,9 @@ export default function VendorChat() {
                             setSelectedConversationId(c.conversationId)
                           }
                         >
-                          <div>
+                          {/* <div>
                             <b>Conversation #{c.conversationId}</b>
-                          </div>
+                          </div> */}
                           <div
                             style={{
                               fontSize: 12,
@@ -206,7 +206,7 @@ export default function VendorChat() {
                               marginTop: 4,
                             }}
                           >
-                            Farmer: {c.farmerId}
+                            Farmer: {c.farmerName || c.farmerId}
                           </div>
                         </button>
                       ))}
