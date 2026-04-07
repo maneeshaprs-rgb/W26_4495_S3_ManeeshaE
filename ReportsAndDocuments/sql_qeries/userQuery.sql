@@ -1,8 +1,12 @@
-USE FarmVendorDb;
-GO
+-- USE FarmVendorDb;
+-- GO
 
-SELECT Id,Email, UserName
-FROM AspNetUsers;
+-- SELECT Id,Email, UserName
+-- FROM AspNetUsers;
 
 SELECT *
 FROM AspNetUsers;
+
+SELECT COLUMN_NAME 
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'AspNetUsers';
