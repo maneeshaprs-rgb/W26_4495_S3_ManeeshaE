@@ -10,5 +10,13 @@ public class RecommendedVendorRowDto
     public decimal MatchableQuantity { get; set; }
     public int MatchedProductCount { get; set; }
     public decimal FinalScore { get; set; }
+
+    
+    public string? VendorCity { get; set; }
+    public string? VendorProvince { get; set; }
+    public string? VendorPostalCode { get; set; }
+
+
+
     public List<string> MatchedProducts { get; set; } = new();
 }

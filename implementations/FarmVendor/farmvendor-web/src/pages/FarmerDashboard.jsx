@@ -888,6 +888,7 @@ const startVendorChat = async (requestRow) => {
                         <th>Products</th>
                         <th>Match Qty</th>
                         <th>Distance (km)</th>
+                        <th>Address</th>
                         <th>Relationship</th>
                         <th>Score</th>
                       </tr>
@@ -904,6 +905,13 @@ const startVendorChat = async (requestRow) => {
                             <td>{v.matchedProducts?.join(", ")}</td>
                             <td>{v.matchableQuantity}</td>
                             <td>{v.distanceKm}</td>
+                            
+                            <td>
+                              {[v.vendorCity, v.vendorProvince, v.vendorPostalCode]
+                                .filter(Boolean)
+                                .join(", ") || "N/A"}
+                            </td>
+
                             <td>{v.relationshipScore}</td>
                             <td>{v.finalScore}</td>
                           </tr>

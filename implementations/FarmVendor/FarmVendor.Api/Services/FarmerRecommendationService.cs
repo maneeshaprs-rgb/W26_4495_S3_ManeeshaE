@@ -120,6 +120,13 @@ public class FarmerRecommendationService
                 MatchableQuantity = Math.Round(matchableQty, 2),
                 MatchedProductCount = matchedProductCount,
                 FinalScore = Math.Round(finalScore, 2),
+
+                
+                VendorCity = vendor?.City,
+                VendorProvince = vendor?.Province,
+                VendorPostalCode = vendor?.PostalCode,
+
+
                 MatchedProducts = matchedProducts.Distinct().ToList()
             });
         }
