@@ -255,7 +255,7 @@ const [startingChat, setStartingChat] = useState(false);
       setSearchingImages(false);
     }
   };
-
+//add product
   const openAddLot = async () => {
     setPageError("");
     setLotError("");
