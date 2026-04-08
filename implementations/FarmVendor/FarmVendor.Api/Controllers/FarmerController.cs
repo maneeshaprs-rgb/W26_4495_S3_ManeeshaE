@@ -297,7 +297,7 @@ public async Task<IActionResult> GetRequests()
         return Ok(rows);
     }
 
-
+//Haversine distance calculation logic
 private static double CalculateDistanceKm(double lat1, double lon1, double lat2, double lon2)
 {
     double R = 6371;
