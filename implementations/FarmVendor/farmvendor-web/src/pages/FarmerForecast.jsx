@@ -215,7 +215,7 @@ export default function FarmerAnalytics() {
     }
     return str;
   };
-
+//export forecast result
   const exportForecastResultsCsv = () => {
     if (!rows || rows.length === 0) {
       setError("No forecast rows available to export.");
