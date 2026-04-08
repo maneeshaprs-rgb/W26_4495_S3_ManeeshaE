@@ -1,8 +1,8 @@
--- USE FarmVendorDb;
--- GO
+USE FarmVendorDb;
+GO
 
--- SELECT Id,Email, UserName
--- FROM AspNetUsers;
+SELECT Id,Email, UserName
+FROM AspNetUsers;
 
 SELECT *
 FROM AspNetUsers;
