@@ -11,5 +11,5 @@ ORDER BY ForecastDate;
 
 SELECT ForecastDate, ModelName, COUNT(*) 
 FROM DemandForecast
-WHERE ForecastDate = '2026-04-01'
+WHERE ForecastDate = '2026-04-07'
 GROUP BY ForecastDate, ModelName;

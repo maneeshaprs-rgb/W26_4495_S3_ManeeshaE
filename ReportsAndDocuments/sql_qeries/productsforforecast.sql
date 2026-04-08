@@ -25,7 +25,7 @@ SELECT
     ModelName,
     COUNT(*) AS ForecastCount
 FROM DemandForecast
-WHERE ForecastDate = '2026-04-01'
+WHERE ForecastDate = '2026-04-07'
 GROUP BY ForecastDate, ModelName
 ORDER BY ModelName;
 -- Check whether 2026-04-01 ML forecasts overlap with Farmer One’s products
@@ -40,7 +40,7 @@ SELECT
     f.ModelName
 FROM DemandForecast f
 JOIN Product p ON f.ProductId = p.ProductId
-WHERE f.ForecastDate = '2026-04-01'
+WHERE f.ForecastDate = '2026-04-07'
   AND f.ModelName = 'MLNET_SSA'
   AND p.Name IN ('Blueberry', 'Onions', 'Tomatoes', 'Milk')
 ORDER BY p.Name, f.ForecastQty DESC;
