@@ -1,0 +1,8 @@
+,,
+Aspect,Moving Average,ML.NET SSA
+Model Type,Statistical,Machine?Learning (Time?Series)
+Trend Detection,Limited,Strong
+Sensitivity to Noise,High,Lower
+Forecast Smoothness,Moderate,High
+Interpretability,High,Moderate
+Suitability for Decision Support,Limited,High
